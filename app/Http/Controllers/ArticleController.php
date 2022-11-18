@@ -44,7 +44,7 @@ class ArticleController extends Controller
   {
     $validated = $request->safe()->only(['title', 'content', 'category_id']);
     Article::create($validated);
-    //dd($validated) //para ver que datos nay en la variable, se compenta
+    //dd($validated) ;//para ver que datos nay en la variable, se compenta
                      // una vez que todo funciona correctamente
     session()->flash("success", __("El artículo ha sido creado correctamente"));
     return redirect(route("articles.index"));

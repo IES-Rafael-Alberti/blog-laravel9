@@ -18,18 +18,25 @@
             @include('layouts.navigation')
 
             <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
+          @if (isset($header))
+            <header class="bg-white shadow">
+              <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                {{ $header }}
+              </div>
+            </header>
+          @endif
 
-            <!-- Page Content -->
-            <main>
+          <!-- Page Content -->
+          <main>
+            @if (session()->has("success"))
+              <div class="bg-green-500 text-white p-4">
+                <ul>
+                  <li>{{ session("success") }}</li>
+                </ul>
+              </div>
+            @endif
                 {{ $slot }}
-            </main>
+          </main>
         </div>
     </body>
 </html>

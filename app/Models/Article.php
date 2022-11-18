@@ -56,6 +56,7 @@ class Article extends Model
     //accesor para obtener un extracto del contenido del artículo
     public function getExcerptAttribute(): string
     {
-        return Str::excerpt($this->content);
+        return Str::words(value: $this->content, words: 90);
+        //Str::excerpt(value: $this->content);
     }
 }
