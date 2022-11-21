@@ -1,0 +1,1399 @@
+% Created 2022-11-21 lun 20:03
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{minted}
+
+\usepackage{parskip}
+\usepackage[utf8]{inputenc} %% For unicode chars
+\usepackage{placeins}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\linespread{1.05}
+\usepackage[scaled]{helvet}
+\usepackage{courier}
+\hypersetup{colorlinks=true,linkcolor=blue}
+\RequirePackage{fancyvrb}
+\AtBeginEnvironment{noerr}{\dontdofcolorbox}
+\def\dontdofcolorbox{\renewcommand\fcolorbox[4][]{##4}}
+\usepackage{mdframed}
+\BeforeBeginEnvironment{minted}{\begin{mdframed}}
+\AfterEndEnvironment{minted}{\end{mdframed}}
+\setcounter{secnumdepth}{4}
+\date{}
+\title{}
+\hypersetup{
+ pdfauthor={},
+ pdftitle={},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 27.1 (Org mode 9.5.5)}, 
+ pdflang={Spanish}}
+\begin{document}
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+
+\setlength\parindent{10pt}
+
+
+\section{Blog con Laravel 9 sail}
+\label{sec:org652743b}
+El código del proyecto se puede encontrar \href{https://github.com/IES-Rafael-Alberti/blog-laravel9.git}{aquí}.
+
+
+\subsection{Crear proyecto}
+\label{sec:orgf366841}
+\begin{minted}[]{bash}
+curl -s https://laravel.build/blog-laravel9 | bash
+cd curso-basico-laravel9
+sail up
+\end{minted}
+
+\subsection{Modelo de datos}
+\label{sec:org61be0dc}
+\subsubsection{Modelos y sus migraciones}
+\label{sec:orged43f58}
+
+\begin{enumerate}
+\item Creamos el modelo \emph{Category} y su migración añadiendo \texttt{-m}
+\label{sec:org41aa717}
+\begin{minted}[]{bash}
+sail artisan make:model Category -m
+\end{minted}
+
+
+El modelo tendrá una columna \texttt{id()} de tipo \texttt{BigInteger Unsigned
+Primary Key}, y una columna para el nombre de tipo \texttt{Varchar de 40}:
+\begin{minted}[]{php}
+<?php
+···
+public function up()
+{
+    Schema::create('categories', function (Blueprint $table)
+    {
+        $table->id();
+        $table->string("name", 40)->unique();
+    });
+}
+···
+\end{minted}
+
+Observa que en Laravel 9 (realmente desde la 7) la función \texttt{id()},
+hace todo lo necesario sin necesidad de especificar el tipo o primary
+key...
+
+Varchar viene expresado como string.
+
+\item Ahora el modelo \emph{Article}
+\label{sec:org8303fb7}
+\begin{minted}[]{bash}
+sail artisan make:model Article -m
+\end{minted}
+
+Un artículo tendrá una categoría (\emph{Category}) y un usuario creador
+(\emph{user}), por lo que enlazaremos con las tablas correspondientes con
+una «foreign key». El orden de creación de las migraciones es
+relevante. Además tendrá un título y el contenido. En este caso tendrá
+dos campos para indicar el momento de la creación y cuando ha sido
+modificado.
+
+\begin{minted}[]{php}
+<?php
+···
+public function up()
+{
+    Schema::create('articles', function (Blueprint $table)
+    {
+        $table->id();
+        $table->foreignIdFor(\App\Models\User::class)->constrained();
+        $table->foreignIdFor(\App\Models\Category::class)->constrained();
+        $table->string("title", 80)->unique();
+        $table->text("content");
+        $table->timestamps();
+    });
+}
+···
+\end{minted}
+\end{enumerate}
+
+\subsubsection{Modelo Category}
+\label{sec:orgc1dee90}
+Vamos a tocar el modelo creado automáticamente para ajustarlo.
+\begin{minted}[]{php}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Category extends Model
+{
+    use HasFactory;
+
+    // por defecto Laravel crea timpestamps y esta variable es true
+    // con false le indicamos al ORM que no existen
+    public $timestamps = false;
+
+    // evitar ataques de asignación masiva
+    protected $fillable = [
+        "name",
+    ];
+
+   //Definimos la relación entre Category y Articles
+   //Una categoría puede estar en muchos articulos
+   //En principio un artículo sólo pertenece a una categoría,
+   //así que es una relación de uno a muchos
+   //Accediendo a la función articles, des un objeto de tipo Category,
+   //podremos saber todos los artículos que tienen esa categoría.
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class);
+    }
+}
+\end{minted}
+
+\newpage
+
+\begin{enumerate}
+\item Modelo Article
+\label{sec:orgc0bd3a2}
+Aquí hay más cosas que cambiar:
+\begin{minted}[]{php}
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
+
+class Article extends Model
+{
+    use HasFactory;
+    //datos que permitimos rellenar
+    protected $fillable = [
+        "user_id", "category_id", "title", "content",
+    ];
+    //para la paginación, cuantos mostraremos por página
+    //método paginate
+    protected $perPage = 5;
+
+    // método de Laravel que se ejecuta cuando se instancia un modelo
+    protected static function boot()
+    {
+        parent::boot();
+        //callback que recupera el id del autor y lo
+        // relaciona con el user_id=> no es un campo rellenable
+        // se rellena automáticamente con el id del usuario identificado
+        self::creating(function (Article $article) {
+            $article->user_id = auth()->id();
+        });
+    }
+
+    //relación 1 a muchos, para saber a qué usaurio pertenece el artículo
+    //
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+    //relación 1 a muchos, a qué categoría pertence el artículo
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    //poner la hora en formato legible para nosotros
+    //carbon librería para trabajar con fechas
+    public function getCreatedAtFormattedAttribute(): string
+    {
+        return \Carbon\Carbon::parse($this->created_at)->format('d-m-Y H:i');
+    }
+    //accesor para obtener un extracto del contenido del artículo
+    public function getExcerptAttribute(): string
+    {
+        return Str::excerpt($this->content);
+    }
+}
+\end{minted}
+\textbf{Nota: excerpt} Por si a alguien le pasa, o no. La función \texttt{excerpt}
+ha funcionado bien con los artículos creados desde los \texttt{seeders} y
+\texttt{factories}; sin embargo, con artículos creados desde el formulario
+falla, no sé la razón. La  solución ha sido cambiar:
+\begin{minted}[]{php}
+<?php
+Str::excerpt(value: $this->content);
+\end{minted}
+por
+\begin{minted}[]{php}
+<?php
+Str::words(value: $this->content, words: 90);
+\end{minted}
+Donde 90, puede ser 100 o la cantidad de palabras que queráis que se
+muestren.
+
+\item Modelo User
+\label{sec:orgec25882}
+Vamos a reutilizar el modelo que viene predefinido en Laravel, vamos a
+dejarlo casi tal cual viene, pero vamos a añadir la relación con los artículos:
+\begin{minted}[]{php}
+<?php
+//Un usuario va a tener muchos (hasMany) articles
+public function articles(): HasMany
+{
+    return $this->hasMany(Article::class);
+}
+\end{minted}
+\end{enumerate}
+
+\subsection{Seeders y Factories}
+\label{sec:orgbcbdc3e}
+Los «Seeders» (sembradores), junto con las Factories (factorías), son un
+medio para introducir datos de prueba, falsos, en la BD y poder probar
+la aplicación.
+
+\begin{enumerate}
+\item Seeder de Category
+\label{sec:org6e6be03}
+Vamos a crear un \emph{seeder} para Categoy:
+\begin{minted}[]{bash}
+sail artisan make:seed CategorySeeder
+\end{minted}
+
+Abrimos el fichero (en database/seeders) y lo modificamos:
+\begin{minted}[]{php}
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Category;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class CategorySeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
+    public function run()
+    {
+       // nuestros añadidos
+       //Utilizamos nuestro modelo Category, y de este modelo
+       //podemos usar varias funciones, insert para meter muchos datos
+       //o create para un único dato. Vamos a utilizar insert, puesto
+       // que vamos a introducir varios. Creamos un array por cada dato.
+        Category::insert([
+           ["name" => "Php",],
+           ["name" => "Laravel",],
+           ["name" => "Vue",],
+           ["name" => "Docker",],
+        ]);
+    }
+}
+\end{minted}
+
+Cuando ejecutamos los \emph{seeders}, el único que se ejecuta es el
+\texttt{DatabaseSeeder}, para ejecutar los demás tendremos que registrarlos,
+precisamente en \texttt{DatabaseSeeder}. Veremos dentro de un momento que
+hacer para registrarlos.
+
+Antes vamos ver cómo funcionan las factorías con una factoría para los
+artículos:
+\item Factory para Article.
+\label{sec:org4e43151}
+Creamos la factoría como siempre, con artisan:
+
+\begin{minted}[]{bash}
+sail artisan make:factory ArticleFactory
+\end{minted}
+
+Abrimos \texttt{ArticleFactory} y lo modificamos para que quede así:
+\begin{minted}[]{php}
+<?php
+namespace Database\Factories;
+
+use App\Models\Category;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Article>
+ */
+class ArticleFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        //introducimos los campos que queremos con su tip
+        //los "faker" ya vienen dentro de los facotry
+        //no hay que instanciarlos
+        //
+        return [
+            //texto aleatorio de 30 caracteres
+            "title" => $this->faker->text(30),
+            //texto aleatorio para el "content"
+            "content" => $this->faker->text,
+            //obtenemos todos los usuarios que tenemos y asignamos
+            //uno aleatoriamente
+            "user_id" => User::all()->random(1)->first()->id,
+            //idem con las categorías
+            "category_id" => Category::all()->random(1)->first()->id,
+            //hora de creación ahora con la función, de Carbon, now()
+            "created_at" => now(),
+        ];
+    }
+}
+\end{minted}
+
+\item \textbf{Actualizar DatabaseSeeder}
+\label{sec:org956ecdc}
+Para utilizar todo lo creado, debemos ir a DatabaseSeeder y registrar
+el seeder y la factory creados:
+
+\begin{minted}[]{php}
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Article;
+use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     *
+     * @return void
+     */
+    public function run()
+    {
+        //creamos un usuario con la User::factory
+        //le pasamos datos, así que no usará lo del factory
+        User::factory()->create([
+            "name" => "CursosDesarrolloWeb",
+            "email" => "laravel9@blogweb.es",
+        ]);
+        User::factory()->create([
+            "name" => "Soporte",
+            "email" => "soporte@blogweb.es",
+        ]);
+        //Para llamar al seeder sólo tenemos que llamarlo
+        $this->call(CategorySeeder::class);
+        //Creamos 20 artículos
+        Article::factory(20)->create();
+    }
+}
+\end{minted}
+
+Nota:
+\begin{mdframed}
+No hemos mencionado la factoría de usuarios \texttt{UserFactory}, porque se
+crea automáticamente al crear el proyecto Laravel, y no hemos
+necesitado modificarla, sólo usarla. La puedes encontrar en
+\texttt{database/factories/UserFactory.php}
+\end{mdframed}
+
+
+\item Ejecutar seeders
+\label{sec:orgbd968f0}
+Es el turno de ejecutar los seeders
+\begin{minted}[]{bash}
+sail artisan db:seed
+\end{minted}
+
+Algunas veces pueden repetirse filas, así que habrá que volver a
+lanzar el seeder.
+
+Además debemos modificar una función del modelo \texttt{Article} para poder
+lanzar los seeders:
+\begin{minted}[]{php}
+<?php
+protected static function boot()
+{
+        parent::boot();
+        //callback que recupera el id del autor y lo
+        // relaciona con el user_id=> no es un campo rellenable
+        // se rellena automáticamente con el id del usuario identificado
+        //Sólo se ejecutará si no estamos lanzando una operación desde consola,
+        //porque no tenemos el usuario identificado
+        if(!app()->runningInConsole())
+        {
+            self::creating(function (Article $article)
+            {
+                $article->user_id = auth()->id();
+            });
+        }
+}
+\end{minted}
+
+Si ya habíamos lanzado los seeder, aunque lo arreglemos fallará,
+porque se habrá ejecutado a medias, y ya habrá datos en BD. Así que
+habrá que hacer algo:
+\begin{minted}[]{bash}
+sail artisan migrate:fresh --seed
+\end{minted}
+
+Con esto vaciamos las tablas, las eliminamos, recreamos y las
+rellenamos con los seeders.
+\end{enumerate}
+
+
+
+\subsection{Autenticación en Laravel}
+\label{sec:orgb82b922}
+El siguiente paso es realizar el sistema de autenticación de nuestro
+blog. Para ello usaremos Breeze, una librería de Laravel:
+
+\begin{enumerate}
+\item \textbf{Laravel Breeze}
+\label{sec:orgf779fe8}
+Laravel Breeze es una implementación simple y mínima de todas las
+funciones de autenticación de Laravel, incluido el inicio de sesión,
+el registro, el restablecimiento de contraseña, la verificación de
+correo electrónico y la confirmación de contraseña. La capa de vista
+de Laravel Breeze se compone de plantillas Blade simples diseñadas con
+Tailwind CSS. Para comenzar, consulte la documentación sobre los kits
+de inicio de aplicaciones de Laravel.
+
+Otras alternativas son:
+\item \textbf{Laravel Fortify} es un backend de autenticación sin cabeza para Laravel
+\label{sec:org7c1bb7b}
+que implementa muchas de las funciones que se encuentran en esta
+documentación, incluida la autenticación basada en cookies y otras
+funciones como la autenticación de dos factores y la verificación de
+correo electrónico. Fortify proporciona el backend de autenticación
+para Laravel Jetstream o se puede usar de forma independiente en
+combinación con Laravel Sanctum para proporcionar autenticación para
+un SPA que necesita autenticarse con Laravel.
+
+\item \textbf{Laravel Jetstream} es un sólido kit de inicio de aplicaciones que
+\label{sec:org9a07241}
+consume y expone los servicios de autenticación de Laravel Fortify con
+una hermosa y moderna interfaz de usuario impulsada por Tailwind CSS,
+Livewire o Inertia. Laravel Jetstream incluye soporte opcional para
+autenticación de dos factores, soporte de equipo, administración de
+sesiones de navegador, administración de perfiles e integración
+incorporada con Laravel Sanctum para ofrecer autenticación de token
+API. Las ofertas de autenticación de API de Laravel se analizan a
+continuación.
+
+Aunque Laravel Breeze no nos ofrece tantas funcionalidades como
+Jetstream: 2FA, Inertia o Livewire, sí nos ofrece lo básico para
+cualquier proyecto, un completo proceso de autenticación, registro,
+login, confirmación de correo electrónico y recuperación de
+contraseña, y todo esto publicando todos los recursos en nuestro
+proyecto, tanto vistas con blade como controladores y
+requests. Instalar Laravel Breeze Para empezar a utilizar Laravel
+Breeze en tu proyecto Laravel simplemente sigue estos pasos (forma
+recomendada de instalar Breeze):
+
+\begin{minted}[]{bash}
+#Instala la dependencia Breeze
+sail composer require laravel/breeze --dev
+#Se monta el "andamio", en la aplicación, para usar
+#autenticación con Breeze
+sail artisan breeze:install
+\end{minted}
+
+Vamos a trabajar con Laravel Blade para las vistas, es la forma más
+sencilla. No es la más potente ni la única, Laravel se puede integrar
+fácilmente con Vue y con React, y con un poco más de trabajo con
+Mithril.js...
+
+
+Podemos comprobar que está instalado mirando que en \texttt{Controllers}
+tenemos el nuevo directorio \texttt{Auth} con todas las partes de la
+autenticación. Tenemos nuevos directorios y vistas en resources/views,
+entre otros \texttt{auth} (vistas de autenticación), \texttt{components}
+(componentes Blade que podemos utilizar en nuestra aplicación),
+\texttt{layouts} (diseño para usuarios autenticados, para invitados,
+navegación con acceso al dashboard -lo que se muestra al entrar en la
+página-).
+
+Además ejecutando el siguiente comando y viendo que se han añadido
+nuevas rutas:
+\begin{minted}[]{bash}
+sail artisan route:list
+\end{minted}
+
+Luego vamos a ejecutar \texttt{yarn} (alternativa a \texttt{npm}) para bajar las
+dependencias del lado del cliente y hacer seguimiento de los cambios
+que hagamos en el lado del cliente (para que se actualicen las
+vistas... sin necesidad de relanzar la aplicación).
+
+Laravel con webpack/laravel-mix versiones < 9.19.0:
+\begin{minted}[]{bash}
+sail yarn && sail yarn watch
+\end{minted}
+o bien
+\begin{minted}[]{bash}
+sail npm install && sail npm run watch
+\end{minted}
+
+Laravel con vite, versiones >= a la 9.19.0:
+\begin{minted}[]{bash}
+sail yarn  && sail yarn dev
+\end{minted}
+o bien
+\begin{minted}[]{bash}
+sail npm install && sail npm run dev
+\end{minted}
+
+Webpack de laravel-mix y vite son herramientas para construir la parte
+«front-end» de una aplicación web, siendo vite más moderno y la
+herramienta de construcción que viene con la versión de Laravel que
+estamos usando.
+
+Si alguien quiere, o necesita, volver a Laravel Mix, \href{https://github.com/laravel/vite-plugin/blob/main/UPGRADE.md\#migrating-from-vite-to-laravel-mix}{aquí hay una guía}
+para hacerlo.
+
+Una vez llegados a este punto ya podemos entrar en \texttt{localhost} y ver
+que nuestro sistema de "Login" está en marcha.
+
+Versiones anteriores de Laravel usaban Bootstrap como framework de
+CSS, pero esta versión que estamos usando utiliza Tailwind.
+\end{enumerate}
+
+\subsection{Controladores, recursos y rutas. Tests parte 1.}
+\label{sec:org25891eb}
+\subsubsection{Controlador de artículo: «ArticleController»}
+\label{sec:org3e1ed51}
+Vamos a empezar con el blog, para ello creamos nuestro primer
+controlador. El controlador es el puente entre la vista y el modelo y
+se ejecuta a través de las rutas definidas en el sistema de rutas.
+
+El controlador va a ser del tipo \emph{resource} (recurso), lo indicamos
+con el \emph{flag} \texttt{-r}. Al ser del tipo recurso nos va a crear
+automáticamente los métodos:
+\begin{itemize}
+\item \texttt{index}: listar los artículos
+\item \texttt{create}: mostrar el formulario de creación
+\item \texttt{store}: guardar un artículo en BD
+\item \texttt{show}: mostrar un artículo en detalle
+\item \texttt{edit}: mostrar el formulario de edición de artículos
+\item \texttt{update}: actualizar el artículo que hayamos estado editando
+\item \texttt{destroy}: eliminar un recurso(artículo) de la base de datos
+\end{itemize}
+
+Básicamente todo lo que necesitamos para un CRUD.
+
+Le vamos a pasar otra opción \texttt{-{}-model=Article} para indicarle que el
+que vamos a gestionar objetos de tip \texttt{Article}.
+autoEjecutamos:
+\begin{minted}[]{bash}
+sail artisan make:controller ArticleController -r --model=Article
+\end{minted}
+
+Si vamos al directorio de controladores vemos nuestro
+ArticleController.
+
+\begin{enumerate}
+\item \textbf{Creación de los tests}
+\label{sec:org09a3b68}
+Más adelante veremos otra forma de hacer tests con el plugin Pest,
+pero por ahora vamos a verlos tal y como los incorpora Laravel.  En
+los controladores, la idea es crear un test por cada función del
+controlador.
+\begin{minted}[]{bash}
+sail artisan make:test Http/Controllers/ArticleController/IndexTest
+     [--unit][--pest]
+\end{minted}
+
+Por defecto para Laravel todo son «feature tests» (carpeta
+\texttt{tests/Features}), si queremos crear test unitarios, en su
+correspondiente carpeta \texttt{/tests/Unit} hay que usar la opción
+\texttt{-{}-unit}. La opción \texttt{-{}-pest}, es para usar el framework, de tests,
+Pest, que veremos más adelante.
+
+Mirad el detalle de, que el nombre acaba en \texttt{Test}, para ayudar a
+Laravel a descubir los tests.
+
+En general crearemos tests de características (feature tests), puesto
+que probamos funcionalidades completas y no funciones individuales
+desconectadas del resto.
+
+Podemos hacer un fichero de test para cada función del controlador, o
+hacer un fichero único con todos los tests del controlador, como en el
+ejemplo.
+
+Una vez terminados los tes podemos hacer (cualquiera de ellas):
+\begin{minted}[]{bash}
+sail test
+sail test --group orders
+sail artisan test
+\end{minted}
+
+Más adelante veremos otras alternativas que facilitan el testing.
+\end{enumerate}
+
+
+\subsubsection{Actualizar rutas}
+\label{sec:orgce07d7f}
+Si vamos a nuestro archivo de rutas ahora vemos que hay nuevas rutas
+que antes no teníamos. Entre otras se hace inclusión del fichero
+\texttt{routes/auth.php}, en el que están todas las rutas necesarias para todas
+las tareas de autenticación.
+
+Pues bien, vamos a añadir una ruta para el controlador de artículos:
+\begin{minted}[]{php}
+<?php
+
+Route::resource("articles", \App\Http\Controllers\ArticleController::class)
+    ->middleware("auth");
+\end{minted}
+
+Con esto estamos añadiendo todas las rutas para el CRUD de Article. En
+versiones anteriores habría que poner las rutas para cada una de las
+operaciones del CRUD. Además, por usar el middleware auth, no es
+posible ir a esta página sin estar autenticado.
+
+\subsubsection{Listado y paginación de artículos}
+\label{sec:org1a15431}
+Nos vamos a \texttt{ArticleController}, al principio, a la función \texttt{index()}
+que es la que servirá para hacer el listado de artículos. La opción
+por defecto de \texttt{index()} es devolver un objeto de tipo \texttt{Response}, pero
+nosotros vamos a devolver un \texttt{Renderable} de \texttt{Illuminate}. Con esto
+queremos decir que vamos a devolver una vista. Quedará así:
+\begin{minted}[]{php}
+<?php
+
+/**
+ * Display a listing of the resource.
+ *
+ * @return Renderable
+ */
+public function index(): Renderable
+{
+    $articles = Article::with("category")->latest()->paginate();
+    //dd($articles)
+    return view("articles.index", compact("articles"));
+}
+\end{minted}
+Con esto vamos a retornar todos los artículos, incluida su
+categoría. Con el método \texttt{with} le decimos que queremos cargar una
+relación, en este caso "category". Podríamos indicar las columnas que
+queremos así: \texttt{"category:id,name}, pero como sólo tiene dos columnas
+no ponemos nada y las recuperamos todas. También vamos a decir que
+queremos ordenar por la fecha de lata. Para ello usamos el método
+\texttt{latest()} para obtener desde el final. Finalmente llamamos a la
+función \texttt{paginate()}, que nos devuelve todos los resultados, pero
+paginados. Si queremos saber que está pasando, podemos usar la
+función, antes del return, \texttt{dd(\$articles)}, para ver la información
+que pasa por ahí. Recordad, que la paginación muestra 5 artículos,
+porque así lo configuramos en el modelo.
+
+Al final hacemos un \texttt{return view...}. Tenemos que crear la vista, para
+ello creamos el fichero \texttt{index.blade.php} en
+\texttt{resources/views/articles} (a veces PHPStorm te ayuda y te propone
+crear esa vista, supongo que con el plugin de pago, o el gratis que no
+está disponible para la última versión de PHPStorm; lo que sí se puede
+hacer «seguro», es crear los tests, pulsamos \texttt{Alt+Insert} y en el menú,
+una de las opciones, es Test...).
+
+Vamos a modificar también el fichero \texttt{navigation.blade.php"}, vamos a
+\texttt{<!-{}- Navigation Links -{}->}, y duplicamos el \texttt{x-nav-link} modificando
+las rutas adecuadamente:
+
+\begin{minted}[]{html}
+<!-- Navigation Links -->
+<div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+    <x-nav-link :href="route('dashboard')"
+                :active="request()->routeIs('dashboard')">
+        {{ __('Dashboard') }}
+    </x-nav-link>
+  <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+    <x-nav-link :href="route('articles.index')"
+                :active="request()->routeIs('articles.*')">
+      {{ __('Artículos') }}
+    </x-nav-link>
+</div>
+\end{minted}
+
+Cuando creamos un controlador de tipo resource, como hicimos antes, se
+crean una serie de rutas para todas las funciones de ese resource, así
+ya tenemos creadas las rutas, \texttt{article.index, article.destroy}...
+
+Con lo anterior hacer que, en la barra de navegación, aparezca el
+enlace a la ruta \texttt{article.index}, pero sólo si estamos en alguna ruta
+de "articles" \texttt{:active="request()->routeIs('articles.*')} \\
+\texttt{\{\{ \_\_('Artículos') \}\}}.
+
+Ahora vamos al Dashboard \texttt{dashboard.blade.php}. Observemos la etiqueta
+\texttt{<x-app-layout>}, nos está indicando que usa el layout \emph{app}, en el
+fichero \texttt{app.blade.php}. Mirando en ese fichero vemos que es la
+disposición de base/layout (plantilla base) de nuestra aplicación. En
+él vemos que tenemos las partes que muestran la navegación, la
+cabecera, pie... Copiamos el contenido de \texttt{app.blade.php}, lo pegamos
+y lo iremos modificando. Podéis probar a quitar y poner cosas, y recargar.
+
+Vamos a dar formato a nuestro listado de artículos, para eso vamos a
+usar Tailwind, que ya viene en Laravel. Vamos a \href{https://tailblocks.cc}{tailblocks}, donde
+veremos bloques ya construidos con los que trabajar. Dentro de la
+cuarta opción, le damos a ver código y copiamos el siguiente trozo (y
+cerramos las etiqueta que queden abiertas):
+\begin{minted}[]{html}
+<section class="text-gray-600 body-font overflow-hidden">
+  <div class="container px-5 py-24 mx-auto">
+    <div class="-my-8 divide-y-2 divide-gray-100">
+      <div class="py-8 flex flex-wrap md:flex-nowrap">
+        <div class="md:w-64 md:mb-0 mb-6 flex-shrink-0 flex flex-col">
+          <span class="font-semibold title-font text-gray-700">
+            CATEGORY
+          </span>
+          <span class="mt-1 text-gray-500 text-sm">12 Jun 2019</span>
+        </div>
+        <div class="md:flex-grow">
+          <h2 class="text-2xl font-medium text-gray-900 title-font mb-2">
+            Bitters hashtag waistcoat fashion axe chia unicorn
+          </h2>
+          <p class="leading-relaxed">
+            Glossier echo park pug, church-key sartorial biodiesel
+            vexillologist pop-up snackwave ramps cornhole.
+            Marfa 3 wolf moon party messenger bag selfies,
+            poke vaporware kombucha lumbersexual pork belly
+            polaroid hoodie portland craft beer.
+          </p>
+          <a class="text-indigo-500 inline-flex items-center mt-4">Learn More
+            <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
+                 stroke="currentColor" stroke-width="2"
+                 fill="none" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="M12 5l7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+\end{minted}
+
+Vemos que el contenido realmente está en la etiqueta \texttt{<div class="-my-8 divide-y-2} \\
+\texttt{divide-gray-100">}, vamos a poner directivas Blade para repetir una
+acción, listar, para cada artículo...:
+\begin{minted}[]{html}
+<section class="text-gray-600 body-font overflow-hidden">
+  <div class="container px-5 py-24 mx-auto">
+    <div class="-my-8 divide-y-2 divide-gray-100">
+       @foreach($articles as $article)
+       <div class="py-8 flex flex-wrap md:flex-nowrap">
+        ···
+      </div>
+      @endforeach
+    </div>
+  </div>
+</section>
+\end{minted}
+
+Vamos a modificar para mostrar lo que queremos.
+
+\begin{itemize}
+\item Cambiamos CATEGORY por la categoría del artículo, que viene en la
+variable de cada objeto de tipo Article.
+\end{itemize}
+\begin{minted}[]{html}
+<span class="font-semibold title-font text-gray-700">
+  {{ $article->category->name }}</span>
+\end{minted}
+
+\begin{itemize}
+\item Cambiamos la fecha puesta a dedo por la fecha del artículo real, con
+el accesor que creamos al principio:
+\end{itemize}
+\begin{minted}[]{hmtl}
+<span class="mt-1 text-gray-500 text-sm">{{ $article->created_at_formmatted }}</span>
+\end{minted}
+
+\begin{itemize}
+\item Cambiamos el título:
+\end{itemize}
+\begin{minted}[]{html}
+<h2 class="text-2xl font-medium text-gray-900 title-font mb-2">
+  {{ $article->title }}
+</h2>
+\end{minted}
+
+\begin{itemize}
+\item Cambiamos el contenido por el extracto:
+\end{itemize}
+\begin{minted}[]{html}
+<p class="leading-relaxed">
+  {{ $article->excerpt }}
+</p>
+\end{minted}
+
+Ya nos queda añadir los enlaces de paginación, que es tan fácil como,
+tras el \texttt{@endforeach}, añadir:
+\begin{minted}[]{php}
+@endforeach
+{{ $article->links() }}
+\end{minted}
+y Laravel ya hace el resto por nosotros.
+
+\subsubsection{Creación de artículos}
+\label{sec:org3717c9c}
+Antes de ir a hacer el formulario de creación de artículos y la
+función del controlador que lo llama, vamos a crear un botón en la
+vista \emph{index} para dar acceso a ese formulario de creación. Es
+simplemente un enlace con la función de ayuda (o helper) \texttt{route()} a
+la función create del controlador de artículos:
+
+\begin{minted}[]{html}
+<div class="mb-16 -my-8">
+   <a href="{{ route("articles.create") }}"
+      class="flex w-64 text-white bg-indigo-500
+             border-0 py-2 px-8 focus:outline-none
+             hover:bg-indigo-600 rounded text-lg">
+      {{ __("Crear un nuevo artículo") }}
+   </a>
+</div>
+\end{minted}
+Ahora mismo la función del controlador está vacía y no nos devuelve nada.
+
+Creamos la función \emph{create}:
+
+\begin{minted}[]{php}
+<?php
+ /**
+ * Show the form for creating a new resource.
+ *
+ * @return Renderable
+ */
+public function create(): Renderable
+{
+  $article = new Article; //
+  $title = __("Crear artículo");
+  //ruta para el procesado del contenido
+  //devuelto por el formulario
+  $action = route("articles.store");
+  return view("articles.form", compact("article", "title", "action"));
+}
+\end{minted}
+
+Dentro de la función hemos definido un nuevo artículo, para
+representar el formulario, que mostraremos después. Vamos a tener un
+título y una acción, donde vamos a procesar el formulario, que
+simplemente será la ruta de la función que recogerá los datos del
+formulario y los almacenará en BD. Finalmente retornamos una vista,
+\texttt{articles.form}, con todos esos parámetros. \texttt{articles.form} indica que
+accedemos a una vista \texttt{form} dentro de la carpeta \texttt{articles} (en
+\texttt{view}, claro). En Laravel muchas veces veremos, en el código, la
+notación con punto para rutas en el árbol de ficheros:
+\texttt{articles.form} equivale a \texttt{view/articles/form.blade.php}
+
+El formulario nos servirá tanto para crear nuevos artículos, como para
+editarlos; economía del esfuerzo\^{}\_\^{}.
+
+Hay diversas manera de pasar parámetros a una vista, una de ellas es
+compact. Es la más sencilla; como inconveniente las variables que
+pasamos aquí, se tienen que llamar igual en el lugar de recepción.
+
+
+Para el formulario vamos de nuevo a la página de bloques de TailWind y
+cogemos el sexto elemento, \texttt{formulario de contacto}, copiamos el código,
+lo pegamos en el formulario y lo revisamos para hacer algunos cambios.
+Queda así:
+
+
+\begin{minted}[]{html}
+<x-app-layout>
+  <x-slot name="header">
+    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+      {{ $title }}
+    </h2>
+  </x-slot>
+
+  <div class="py-12">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      @if ($errors->any())
+        <div class="bg-red-500 text-white p-4">
+          <ul>
+            @foreach ($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
+      <form method="POST" action="{{ $action }}">
+        @csrf
+        @if($article->id)
+          @method("PUT")
+        @endif
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+          <h2 class="text-gray-900 text-lg mb-1 font-medium title-font">
+              {{ __("Escribe tu artículo") }}
+          </h2>
+          <div class="relative mb-4">
+            <label for="title"
+                   class="leading-7 text-sm text-gray-600">
+                   {{ __("Título") }}
+            </label>
+            <input type="text" id="title" name="title"
+                   value="{{ old("title", $article->title) }}"
+                   class="w-full bg-white rounded border border-gray-300
+                          focus:border-indigo-500 focus:ring-2
+                          focus:ring-indigo-200 text-base outline-none
+                          text-gray-700 py-1 px-3 leading-8
+                          transition-colors duration-200 ease-in-out">
+          </div>
+          <div class="relative mb-4">
+            <label for="category_id"
+                   class="leading-7 text-sm text-gray-600">
+                          {{ __("Título") }}</label>
+            <select id="category_id" name="category_id"
+                    class="w-full bg-white rounded border border-gray-300
+                          focus:border-indigo-500 focus:ring-2
+                          focus:ring-indigo-200 text-base outline-none
+                          text-gray-700 py-1 px-3 leading-8
+                          transition-colors duration-200 ease-in-out">
+              @foreach(\App\Models\Category::get() as $category)
+                <option
+                  {{ (int) old("category_id",
+                   $article->category_id) === $category->id ? 'selected'
+                    : '' }} value="{{ $category->id }}">
+                    {{ $category->name }}
+                  </option>
+              @endforeach
+            </select>
+          </div>
+          <div class="relative mb-4">
+            <label for="content"
+                   class="leading-7 text-sm text-gray-600">
+            {{ __("Artículo") }}
+            </label>
+            <textarea id="content" name="content"
+                      class="w-full bg-white rounded border
+                      border-gray-300 focus:border-indigo-500
+                      focus:ring-2 focus:ring-indigo-200 h-32
+                      text-base outline-none text-gray-700 py-1 px-3
+                      resize-none leading-6 transition-colors
+                      duration-200 ease-in-out">
+                   {{ old("content", $article->content) }}
+            </textarea>
+          </div>
+          <button type="submit"
+                  class="text-white bg-indigo-500 border-0
+                  py-2 px-6 focus:outline-none hover:bg-indigo-600
+                  rounded text-lg">
+                 {{ $title }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</x-app-layout>
+\end{minted}
+
+\begin{itemize}
+\item \texttt{@if(\$errors)}, nos muestra los errores en el formulario.
+\item El formulario usa el método \textbf{POST} con la acción \texttt{\{\{ \$action \}\}},
+que viene desde el controlador. Pero si el \texttt{id} existe, estamos
+modificando, no creando un artículo nuevo y necesitaríamos un \textbf{\texttt{PUT}}
+estándar para modificación (también se suele usar \texttt{PATCH}), lo hacemos
+con directivas Blade y así Laravel sabrá que es un \texttt{PUT}:
+\begin{minted}[]{php}
+@if($article->id)
+    @method("PUT")
+@endif
+\end{minted}
+\item \texttt{@csrf} Directiva para proteger el formulario contra XSS.Crea un
+campo \texttt{hidden} en el formulario con un token. Cuando hagamos una
+petición a Laravel se usará ese token para comprobar que la petición
+se hace desde nuestro sitio y no desde otro (evitar XSS).
+
+\item Se ha cambiado el \texttt{value} del siguiente código:
+\begin{minted}[]{html}
+<input type="text" id="title" name="title"
+                 value="{{ old("title", $article->title) }}"
+\end{minted}
+Lo que hace es, si hemos mandado el formulario, desde edición, y la
+validación del formulario ha fallado por lo que sea, se queda con el
+título válido que tenía antes, si no simplemente va a recoger el
+valor que habíamos enviado
+
+\item Recogemos todas las categorías, podríamos hacerlo con el
+controlador, o directamente como hemos hecho:
+\begin{minted}[]{html}
+@foreach(\App\Models\Category::get() as $category)
+  <option  {{ (int) old("category_id",
+     $article->category_id) === $category->id ? 'selected'
+      : '' }} value="{{ $category->id }}">
+      {{ $category->name }}
+  </option>
+@endforeach
+\end{minted}
+Observad la conversión a entero \texttt{(int)}, ¿se puede quitar y usar
+\texttt{==} en lugar de \texttt{===}, porque serían dos cadenas? Si el \texttt{id} de la
+categoría del artículo, nuevo o editado, se corresponde con lo que
+había, se maraca como \texttt{selected}.
+\end{itemize}
+
+\subsubsection{Validación de formularios de forma segura con \texttt{Form Request} y match}
+\label{sec:orgada0f90}
+Lo primero que vamos a hacer es crear un Form Request con artisan:
+\begin{minted}[]{bash}
+sail artisan make:request ArticleRequest
+\end{minted}
+Los request en Laravel permiten interceptar la petición del formulario
+para poder realizar las validaciones correctamente
+
+Una vez creado el fichero en \texttt{Http/Requests/ArticleRequest} lo modificamos:
+\begin{minted}[]{php}
+<?php
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class ArticleRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     *
+     * @return bool
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules(): array
+    {
+        return match ($this->method()) {
+            "POST" => [
+                "title" => "required|min:2|max:40|unique:articles",
+                "content" => "required|min:10",
+                "category_id" => "required|exists:categories,id",
+            ],
+            "PUT" => [
+                "title" => "required|min:2|max:40|unique:articles,title," .
+                           $this->route("article")->id,
+                "content" => "required|min:10",
+                "category_id" => "required|exists:categories,id",
+            ],
+        };
+    }
+}
+\end{minted}
+
+La función \texttt{authorize} debe devolver \texttt{true} para que se active la
+siguiente función \texttt{rules()}, donde crearemos las reglas de validación
+del formulario. Las condiciones para que se ejecuten las reglas las
+controlamos nosotros con rutas, permisos o roles, como hemos hecho
+nosotros con el \texttt{middleware auth} en las rutas.
+
+En lugar de hacer un return directamente, lo habitual, vamos a
+utilizar la función \texttt{match} de PHP 8 para comprobar si recibimos un
+\texttt{POST}, creación, o un \texttt{PUT}, modificación.
+
+Dentro de cada uno las reglas correspondientes, por ejemplo para
+\texttt{title}, en creación, decimos que es obligatorio (\texttt{required}),
+longitud mínima 2 (\texttt{min:2}), máxima 40 (\texttt{max:40}), lo definido para el
+campo en la tabla), único (\texttt{unique}) en la tabla \texttt{articles} (hay que
+validarlo aquí para no recibir un error al intentar insertar en la
+tabla).
+
+Lo mismo hacemos para \texttt{content}, mirad que hemos limitado el tamaño a
+1000 para evitar errores (podemos ser más exactos mirando la longitud
+máxima admitida para el tipo de campo generado para la BD usada).
+
+Para \texttt{category\_id} tenemos que comprobar que, además de obligatorio,
+existe ese \texttt{id} en la tabla \\
+\texttt{categories}, pero allí no se llama \texttt{category\_id}, sino \texttt{id}, por
+tanto debemos especificarlo \\
+(\texttt{exists:categories,id}), para evitar problemas al consultar la BD.
+
+Cuando estamos editando las reglas van a ser muy parecidas, con
+algunos añadidos. En el caso del título tenemos que decirle que ese
+título puede existir en el caso de que el \texttt{id} recuperado sea el \texttt{id}
+\emph{actual} con el que trabajamos (para poder dejar el mismo título y que
+al comprobar si existe un artículo con ese mismo título sepa que si es
+el mismo \texttt{id}, no está repetido). Lo hacemos añadiendo
+\texttt{.\$this->route("article")->id}.
+
+Para los demás campos no vamos a tocar nada.
+
+Más sobre validación de formularios \href{https://laravel.com/docs/9.x/validation\#form-request-validation}{aquí}.
+
+Para ver todas las reglas que podemos usar podemos mirar en \href{https://laravel.com/docs/9.x/validation\#available-validation-rules}{este}
+apartado de la web anterior.
+
+
+\subsubsection{Persistir en BD los datos del formulario}
+\label{sec:orge4a504e}
+Vamos a dar contenido a la función \texttt{store} de nuestro
+\texttt{ArticleController}, que será la función que persistirá en BD, lo que
+hemos introducido y validado en el formulario:
+\begin{minted}[]{php}
+<?php
+/**
+ * Store a newly created resource in storage.
+ *
+ * @param ArticleRequest $request
+ * @return RedirectResponse
+ */
+public function store(ArticleRequest $request): RedirectResponse
+{
+  $validated = $request->safe()->only(['title', 'content', 'category_id']);
+  Article::create($validated);
+  //Para trabajar con traducciones la parte de __("...")
+  session()->flash("success", __("El artículo ha sido creado correctamente"));
+  return redirect(route("articles.index"));
+}
+\end{minted}
+Por defecto se devuelve un objeto de tipo \texttt{Response}, pero nosotros
+vamos a devolver uno del tipo \\
+\texttt{RedirectResponse}, una vez almacenado el artículo vamos a ir al
+listado de artículos para que se muestre que se ha creado.
+
+Con \texttt{\$request->safe()->only(['title', 'content', 'category\_id']);}
+indicamos que vamos a hacer una petición segura, cadenas escapadas,
+verificadas... y además sólo permitimos los campos listado en el
+\texttt{only}.
+
+
+\subsubsection{Añadir flash en app.blade.php}
+\label{sec:org750f89d}
+Para que se muestre el mensaje, vamos a \texttt{app.blade.php}, que es a
+donde estamos redireccionando, y buscamos la sección \texttt{Page Content},
+donde vemos la etiqueta \texttt{<main>}. Aquí vamos a «recibir» la sesión
+creada en la función \texttt{store} («success»), y poner en la página el
+mensaje enviado con la sesión:
+\begin{minted}[]{php}
+<?php
+<!-- Page Content -->
+<main>
+  @if (session()->has("success"))
+    <div class="bg-green-500 text-white p-4">
+      <ul>
+        <li>{{ session("success") }}</li>
+      </ul>
+    </div>
+  @endif
+      {{ $slot }}
+</main>
+\end{minted}
+
+Así obtendremos el mensaje de creado correctamente cuando se cree un
+artículo nuevo y se haya podido insertar en BD.
+
+
+
+\textbf{Tareilla:} En este punto, podemos probar la validación del
+formulario, enviando el formulario vacío o con datos fuera del rango
+permitido.  Si cambiamos el \textbf{true} por \textbf{false} en la función
+\texttt{authorize()} \\
+de \texttt{ArticleRequest}, veremos que nos da un operación no autorizada.
+Lo dejamos como estaba y seguimos con la prueba del formulario. Si lo
+ponemos todo correctamente el \texttt{dd()} podemos ver lo que llega desde el
+formulario.
+
+
+
+\newpage
+
+El fichero \texttt{index.blade.php} terminado:
+\begin{minted}[]{xml}
+<x-app-layout>
+  <x-slot name="header">
+    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+      {{ __('Artículos') }}
+    </h2>
+  </x-slot>
+
+  <section class="text-gray-600 body-font overflow-hidden">
+    <div class="container px-5 py-24 mx-auto">
+      <div class="mb-16 -my-8">
+        <a href="{{ route("articles.create") }}"
+           class="flex w-64 text-white bg-indigo-500
+                  border-0 py-2 px-8 focus:outline-none
+                  hover:bg-indigo-600 rounded text-lg">
+          {{ __("Crear un nuevo artículo") }}
+        </a>
+      </div>
+
+      <div class="-my-8 divide-y-2 divide-gray-100">
+        @foreach($articles as $article)
+          <div class="py-8 flex flex-wrap md:flex-nowrap">
+            <div class="md:w-64 md:mb-0 mb-6 flex-shrink-0 flex flex-col">
+              <span class="font-semibold title-font text-gray-700">
+                 {{ $article->category->name }}
+              </span>
+              <span class="mt-1 text-gray-500 text-sm">
+                {{ $article->created_at_formatted }}
+              </span>
+            </div>
+            <div class="md:flex-grow">
+              <h2 class="text-2xl font-medium text-gray-900 title-font mb-2">
+                 {{ $article->title }}
+              </h2>
+              <p class="leading-relaxed">{{ $article->excerpt }}</p>
+              <a href="{{ route("articles.show", ["article" => $article]) }}"
+                 class="text-indigo-500 inline-flex items-center mt-4">
+                    {{ __("Ver detalle") }}
+                <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2"
+                     fill="none" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a> |
+              <a href="{{ route("articles.edit", ["article" => $article]) }}"
+                 class="text-indigo-500 inline-flex items-center mt-4">
+                       {{ __("Editar") }}
+                <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2"
+                     fill="none" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5l7 7-7 7"></path>
+                </svg>
+              </a> |
+              <form class="inline" method="POST"
+                    action="{{ route("articles.destroy", ["article" => $article]) }}">
+                @csrf
+                @method("DELETE")
+                <button type="submit"
+                        class="text-red-500 inline-flex items-center mt-4">
+                        {{ __("Eliminar") }}
+                  <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
+                       stroke="currentColor" stroke-width="2"
+                       fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="M12 5l7 7-7 7"></path>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        @endforeach
+
+        {{ $articles->links() }}
+      </div>
+    </div>
+  </section>
+</x-app-layout>
+\end{minted}
+
+\newpage
+
+\section{Anexo}
+\label{sec:org0eab5a6}
+\subsection{Pasos tras clonar un repositorio de un proyecto Laravel sail}
+\label{sec:orge08f673}
+Cuando subimos un proyecto hecho con Laravel sail, hay ciertas partes
+que no se suben al repositorio, como binarios, librerías, dependencias
+y ficheros de configuración con información sensible como el
+\texttt{.env}. Por esto, una vez clonado el repositorio tendremos que hacer
+algunas cosas, a saber:
+
+\begin{enumerate}
+\item Rehacer la información del \texttt{.env}
+\begin{enumerate}
+\item Información de los servidores, contraseñas etc., deberemos
+copiar el fichero \texttt{.env.example} a \texttt{.env}, ver qué servicios
+tenemos activos en nuestro \texttt{docker-compose.yml} y cambiar la
+información correspondiente en el nuevo \texttt{.env}, por ejemplo
+para el servicio de BD con MySQL, los datos a rellenar son:
+\begin{minted}[]{bash}
+DB_CONNECTION=mysql
+DB_HOST=/ mysql /
+DB_PORT=3306
+DB_DATABASE=/ blog_laravel9 /
+DB_USERNAME=/ sail /
+DB_PASSWORD=/ password /
+\end{minted}
+Entre \emph{/ /} los datos que hay que cambiar, he puesto sus
+valores correctos, pero recuerda que no tendrá datos
+adecuados cuando empecemos a editarlo.
+\item Ejecutar \texttt{composer} para instalar todo el aparataje de
+Laravel, binarios, librerías, scripts..., incluido \texttt{sail}
+para poder trabajar en el proyecto. Si el proyecto estuviera
+en su totalidad en el contenedor, o tuviéramos \texttt{composer} y
+php instalado en la máquina un simple \texttt{composer install}
+sería suficiente. Pero nuestro proyecto está fuera de los
+contenedores, que es donde está PHP, así que tenemos que
+hacerlo de otra manera, con un contenedor donde está PHP y
+composer. La versión de PHP debe ser la misma con la que se
+creó el proyecto.
+\begin{minted}[]{bash}
+docker run --rm \
+-u "$(id -u):$(id -g)" \
+-v "$(pwd):/var/www/html" \
+-w /var/www/html \
+laravelsail/php81-composer:latest \
+composer install --ignore-platform-reqs
+\end{minted}
+\item Ya tenemos lo necesario para ejecutar y levantar el proyecto con
+\begin{minted}[]{bash}
+sail up
+# o
+sail up -d
+\end{minted}
+\item Una de las partes que no se preserva es la variable
+\texttt{APP\_KEY=}, que deberemos regenerar:
+\begin{minted}[]{bash}
+sail artisan key:generate
+\end{minted}
+\item Ahora rehacemos la BD con las migraciones y las semillas, si
+tenemos \emph{seeders}:
+\begin{minted}[]{bash}
+sail artisan migrate:fresh --seed
+\end{minted}
+Normalmente \emph{fresh} no sería necesario en este caso, pero por
+si las moscas.
+\item Si hemos instalado Breeze u otro componente que trabaje con
+el \emph{frontend}, deberemos instalar las dependencias de \texttt{node}
+y ejecutar el servicio de desarrollo.
+\begin{minted}[]{bash}
+sail npm install
+sail npm run dev
+\end{minted}
+Si tenemos \texttt{yarn} en lugar de \texttt{npm}:
+\begin{minted}[]{bash}
+yarn #o yarn install
+yarn dev #o yarn run dev
+\end{minted}
+Nota 1:
+Yarn es más seguro, eso dicen, y puede bajar las dependencias
+y hacer el build en paralelo, con lo que es más rápido.
+
+Nota 2:
+Cuando el proyecto pase producción se ejecutará \texttt{node}, o \texttt{yarn},
+con la opción \texttt{prod} o \texttt{produdction}, eso generará las partes
+del front definitivas, que deberemos copiar en el sitio
+correspondiente del proyecto, directorios para JavaScript y CSS.
+\end{enumerate}
+\end{enumerate}
+
+Si falta algo, se irá añadiendo en este documento.
+\end{document}

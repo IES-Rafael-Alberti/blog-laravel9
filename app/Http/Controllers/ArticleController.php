@@ -62,27 +62,33 @@ class ArticleController extends Controller
   }
 
   /**
-   * Show the form for editing the specified resource.
-   *
-   * @param \App\Models\Article $article
-   * @return \Illuminate\Http\Response
-   */
-  public function edit(Article $article)
-  {
-    //
-  }
+ * Show the form for editing the specified resource.
+ *
+ * @param Article $article
+ * @return Renderable
+ */
+public function edit(Article $article): Renderable 
+{
+  $title = __("Actualizar artículo");
+  $action = route("articles.update", ["article" => $article]);
+  return view("articles.form", compact("article", "title", "action"));
+}
 
-  /**
-   * Update the specified resource in storage.
-   *
-   * @param \Illuminate\Http\Request $request
-   * @param \App\Models\Article $article
-   * @return \Illuminate\Http\Response
-   */
-  public function update(Request $request, Article $article)
-  {
-    //
-  }
+ /**
+ * Update the specified resource in storage.
+ *
+ * @param  ArticleRequest $request
+ * @param Article $article
+ * @return RedirectResponse
+ */
+public function update(ArticleRequest $request, Article $article) 
+{
+  $validated = $request->safe()->only(['title', 'content', 'category_id']);
+  $article->update($validated);
+
+  session()->flash("success", __("El artículo ha sido actualizado correctamente"));
+  return redirect(route("articles.index"));
+}
 
   /**
    * Remove the specified resource from storage.
