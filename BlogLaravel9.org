@@ -1355,6 +1355,160 @@ así como un enlace para volver al index. Con esto ya está la vista de detalle.
 
 \newpage
 
+*** Eliminar registros de la base de datos de forma correcta
+Vamos a ver cómo eliminar artículos desde el listado de artículos.
+
+Primero nos vamos a =index.blade.php= y añadir una opción para poder
+hacerlo. Va a ser un formulario que añadimos después de la opción de
+=Editar=, tras el carácter de pipeline:
+#+begin_src html
+</a> | <--
+<form class="inline" method="POST"
+      action="{{ route("articles.destroy", ["article" => $article]) }}">
+ @csrf
+ @method("DELETE")
+ <button type="submit"
+         class="text-red-500 inline-flex items-center mt-4">{{ __("Eliminar") }}
+  <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+        fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12h14"></path>
+    <path d="M12 5l7 7-7 7"></path>
+  </svg>
+ </button>
+</form>
+#+end_src
+
+Observad que el borrado lo hacemos con un formulario, lo ponemos
+=inline= con el resto de elementos, y es de tipo =POST=, pero lo vamos
+a mandar como =DELETE=, sin comprobar nada porque sólo va a tener la
+función de borrar. Lo de poner un formulario y no como un enlace, es
+para poder protegerlo con =@csrf= y evitar que cualquiera desde otro
+sitio pueda acceder a nuestros recursos y borrarlos, con una simple
+llamada =GET=, sin =csrf= ni /token/, a ese enlace.
+
+La acción del formulario, va a ser llamar directamente a la ruta
+=articles.destroy= con el artículo actual. Se podría pasar sólo el
+=id=, pero no es necesario, Laravel sabe qué hacer.
+
+También definimos un botón, de tipo submit, con el texto /Eliminar/
+para realizar la acción.
+
+Si borramos ~@method('DELETE')~ no funcionaría, probadlo.
+
+*Mejora*, pedir confirmación del borrado. Se podría lanzar un alert, u
+otro elemento para pedir la confirmación. Si se confirma el borrado ya
+se llamaría a ~destroy~; si no se confirma, se vuelve al listado.
+
+Ahora vamos a crear la función llamada desde el enlace de eliminar. En
+nuestro =ArticleController= vamos a dar contenido a la función
+~destroy~, quedará así:
+#+begin_src php
+<?php
+/**
+ * Remove the specified resource from storage.
+ *
+ * @param Article $article
+ * @return RedirectResponse
+ */
+public function destroy(Article $article)
+{
+    $article->delete();
+    session()->flash("success", __("El artículo ha sido eliminado correctamente"));
+    return redirect(route("articles.index"));
+}
+#+end_src
+
+La primera línea es todo lo que necesitamos. La siguientes es para
+mostrar un mensaje, como siempre, y finalmente volvemos a la lista de
+artículos.
+
+CRUD terminado.
+
+** Por hacer del CRUD
+Quedan algunas cosas por hacer como subir un fichero, imagen... y
+gestionar roles. Lo primero lo vamos a ver, lo segundo...
+
+** Test funcionales con Pest Framework
+Podríamos hacer todos los test de las diferentes funciones del
+controlador tal y como hicimos unas páginas atrás y luego, con los
+test rellenos, usar =sail test=, para ejecutar los test.
+
+Vamos a usar una framework que se llama Pest. Trabaja sin clases, lo
+que eliminar mucho código y además si estás a costumbrado a Jest en
+javascript, te resultará familiar la forma de trabajar.  El elemento
+para estos test son las funciones ~it()~ encadenadas, tantas como
+queramos, con tantos test como creamos necesario.
+
+Primero hay que [[https://pestphp.com/docs/installation][instalar Pest]], si no lo tenemos instalado.
+#+begin_src bash
+sail composer require pestphp/pest --dev --with-all-dependencies
+#+end_src
+
+Luego el plugin para Laravel
+#+begin_src bash
+sail composer require pestphp/pest-plugin-laravel --dev
+#+end_src
+
+Necesitamos que se cree =Pest.php= para artisan (configuración), para ello
+ejecutamos:
+#+begin_src bash
+sail artisan pest:install
+#+end_src
+
+
+También disponemos del comando ~pest:dataset~ para generar datos para
+las pruebas conforme se van realizando los test (usaremos factorías en
+su lugar). Y para crear test usaremos ~pest:test~ , aunque también se
+podría crear con el comando artisan general para los tests y añadir al
+final ~--pest~. Si queremos test unitarios habría que añadir ~--unit~.
+
+*** Nuestro primer test
+Vamos a crear test funcionales para el CRUD de artículos
+#+begin_src bash
+sail artisan pest:test ArticleTest
+#+end_src
+
+Nos crea un fichero con un ~it()~ que vamos a borrar y empezar de cero.
+
+Antes de continuar vamos a abrir el fichero =phpunit.xml= y añadir, en
+la etiqueta ~<php>~:
+#+begin_src xml
+<env name="DB_CONNECTION" value="sqlite"/>
+<env name="DB_DATABASE" value=":memory:"/>
+#+end_src
+
+Si tenemos alguno de esos atributos ya creados, con otros valores, los
+comentamos.
+
+Con esto vamos a ejecutar los tests en una BD en memoria con sqlite,
+sin interferir con nuestra BD de la aplicación.
+
+Si no nos importa, podemos dejar activa:
+#+begin_src xml
+<env name="DB_DATABASE" value="testing"/>
+#+end_src
+
+*Empezamos a crear los tests*. Lo primero es importar lo que vayamos a
+necesitar de Pest/laravel.  Con Pest vamos a usar funciones y no
+clases. De Pest:
+#+begin_src php
+<?php
+use function Pest\Laravel\{actingAs, get};
+#+end_src
+Importamos dos funciones del /namespace/ =Pest\Laravel= como son
+~actingAs~ y ~get~.
+
+
+Podemos mirar el fichero =Pest.php= donde podríamos añadir más
+configuración, entre otras podríamos añadir =Dusk= para ejecutar test
+en el navegador.
+
+Para instalar y configurar Dusk sigue este [[https://laravel.com/docs/9.x/dusk][enlace]] y este [[https://laravel.com/docs/9.x/sail#laravel-dusk][otro]]
+
+*ATENCIÓN* nunca instalar Dusk en un servidor en producción. Podría
+pasar, que personas ajenas se puedan autenticar con la aplicación sin
+ser usuarios.
+
 El fichero =index.blade.php= terminado:
 #+begin_src xml
 <x-app-layout>
