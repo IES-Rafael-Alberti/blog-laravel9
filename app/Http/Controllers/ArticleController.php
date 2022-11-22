@@ -53,12 +53,13 @@ class ArticleController extends Controller
   /**
    * Display the specified resource.
    *
-   * @param \App\Models\Article $article
-   * @return \Illuminate\Http\Response
+   * @param Article $article
+   * @return Renderable
    */
-  public function show(Article $article)
+  public function show(Article $article): Renderable
   {
-    //
+    $article->load("user:id,name", "category:id,name");
+    return view("articles.show", compact("article"));
   }
 
   /**
@@ -67,7 +68,7 @@ class ArticleController extends Controller
  * @param Article $article
  * @return Renderable
  */
-public function edit(Article $article): Renderable 
+public function edit(Article $article): Renderable
 {
   $title = __("Actualizar artículo");
   $action = route("articles.update", ["article" => $article]);
@@ -81,7 +82,7 @@ public function edit(Article $article): Renderable
  * @param Article $article
  * @return RedirectResponse
  */
-public function update(ArticleRequest $request, Article $article) 
+public function update(ArticleRequest $request, Article $article): RedirectResponse
 {
   $validated = $request->safe()->only(['title', 'content', 'category_id']);
   $article->update($validated);
