@@ -45,7 +45,7 @@ class ArticleController extends Controller
     $validated = $request->safe()->only(['title', 'content', 'category_id']);
     Article::create($validated);
     //dd($validated) ;//para ver que datos nay en la variable, se compenta
-                     // una vez que todo funciona correctamente
+    // una vez que todo funciona correctamente
     session()->flash("success", __("El artículo ha sido creado correctamente"));
     return redirect(route("articles.index"));
   }
@@ -63,42 +63,44 @@ class ArticleController extends Controller
   }
 
   /**
- * Show the form for editing the specified resource.
- *
- * @param Article $article
- * @return Renderable
- */
-public function edit(Article $article): Renderable
-{
-  $title = __("Actualizar artículo");
-  $action = route("articles.update", ["article" => $article]);
-  return view("articles.form", compact("article", "title", "action"));
-}
+   * Show the form for editing the specified resource.
+   *
+   * @param Article $article
+   * @return Renderable
+   */
+  public function edit(Article $article): Renderable
+  {
+    $title = __("Actualizar artículo");
+    $action = route("articles.update", ["article" => $article]);
+    return view("articles.form", compact("article", "title", "action"));
+  }
 
- /**
- * Update the specified resource in storage.
- *
- * @param  ArticleRequest $request
- * @param Article $article
- * @return RedirectResponse
- */
-public function update(ArticleRequest $request, Article $article): RedirectResponse
-{
-  $validated = $request->safe()->only(['title', 'content', 'category_id']);
-  $article->update($validated);
+  /**
+   * Update the specified resource in storage.
+   *
+   * @param ArticleRequest $request
+   * @param Article $article
+   * @return RedirectResponse
+   */
+  public function update(ArticleRequest $request, Article $article): RedirectResponse
+  {
+    $validated = $request->safe()->only(['title', 'content', 'category_id']);
+    $article->update($validated);
 
-  session()->flash("success", __("El artículo ha sido actualizado correctamente"));
-  return redirect(route("articles.index"));
-}
+    session()->flash("success", __("El artículo ha sido actualizado correctamente"));
+    return redirect(route("articles.index"));
+  }
 
   /**
    * Remove the specified resource from storage.
    *
-   * @param \App\Models\Article $article
-   * @return \Illuminate\Http\Response
+   * @param Article $article
+   * @return RedirectResponse
    */
   public function destroy(Article $article)
   {
-    //
+    $article->delete();
+    session()->flash("success", __("El artículo ha sido eliminado correctamente"));
+    return redirect(route("articles.index"));
   }
 }
