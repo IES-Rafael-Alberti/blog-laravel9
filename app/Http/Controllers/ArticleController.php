@@ -18,7 +18,7 @@ class ArticleController extends Controller
   {
     $articles = Article::with("category")->latest()->paginate();
     //dd($articles);
-    return view("articles.index", compact("articles"));
+    return view("articles.index", compact(var_name: "articles"));
   }
 
   /**
@@ -43,6 +43,7 @@ class ArticleController extends Controller
   public function store(ArticleRequest $request): RedirectResponse
   {
     $validated = $request->safe()->only(['title', 'content', 'category_id']);
+    $validated['user_id'] = auth()->id();
     Article::create($validated);
     //dd($validated) ;//para ver que datos nay en la variable, se compenta
     // una vez que todo funciona correctamente
