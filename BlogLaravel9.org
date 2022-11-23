@@ -341,6 +341,34 @@ class ArticleFactory extends Factory
 }
 #+end_src
 
+**** *Factory para Category*
+Creada con:
+#+begin_src bash
+sail artisan make:factory CategoryFactory
+#+end_src
+
+Que modificamos y queda:
+#+begin_src php
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Article>
+ */
+class CategoryFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            "name" => $this->faker->text(30),
+        ];
+    }
+}
+#+end_src
+
 **** *Actualizar DatabaseSeeder*
 Para utilizar todo lo creado, debemos ir a DatabaseSeeder y registrar
 el seeder y la factory creados:
@@ -1107,6 +1135,7 @@ hemos introducido y validado en el formulario:
 public function store(ArticleRequest $request): RedirectResponse
 {
   $validated = $request->safe()->only(['title', 'content', 'category_id']);
+  $validated['user_id'] = auth()->id();
   Article::create($validated);
   //Para trabajar con traducciones la parte de __("...")
   session()->flash("success", __("El artículo ha sido creado correctamente"));
@@ -1199,21 +1228,21 @@ controlador que vamos a implementar a continuación. También el
 carácter de pipeline al final del bloque. Vamos a nuestro fichero
 =ArticleController.php= y editamos el método =edit=
 #+begin_src php
-  <?php
-  /**
-   ,* Show the form for editing the specified resource.
-   ,*
-   ,* @param Article $article
-   ,* @return Renderable
-   ,*/
-  public function edit(Article $article): Renderable
-  {
-      //dd($article);
-      $title = __("Actualizar artículo");
-      //***al pasar el $article, al ir al formulario ya estará todo relleno***
-      $action = route("articles.update", ["article" => $article]);
-      return view("articles.form", compact("article", "title", "action"));
-  }
+<?php
+/**
+ * Show the form for editing the specified resource.
+ *
+ * @param Article $article
+ * @return Renderable
+ */
+public function edit(Article $article): Renderable
+{
+    //dd($article);
+    $title = __("Actualizar artículo");
+    //***al pasar el $article, al ir al formulario ya estará todo relleno***
+    $action = route("articles.update", ["article" => $article]);
+    return view("articles.form", compact("article", "title", "action"));
+}
 #+end_src
 
 Observad que es muy parecido a lo que hicimos en la creación de
@@ -1488,26 +1517,210 @@ Si no nos importa, podemos dejar activa:
 <env name="DB_DATABASE" value="testing"/>
 #+end_src
 
-*Empezamos a crear los tests*. Lo primero es importar lo que vayamos a
-necesitar de Pest/laravel.  Con Pest vamos a usar funciones y no
-clases. De Pest:
-#+begin_src php
-<?php
-use function Pest\Laravel\{actingAs, get};
-#+end_src
-Importamos dos funciones del /namespace/ =Pest\Laravel= como son
-~actingAs~ y ~get~.
-
-
+*Nota:* \\
 Podemos mirar el fichero =Pest.php= donde podríamos añadir más
 configuración, entre otras podríamos añadir =Dusk= para ejecutar test
-en el navegador.
+en el navegador. También es posible crear un fichero =.env.testing=
+para que los test lo usen en lugar  de =.env=.
 
 Para instalar y configurar Dusk sigue este [[https://laravel.com/docs/9.x/dusk][enlace]] y este [[https://laravel.com/docs/9.x/sail#laravel-dusk][otro]]
 
 *ATENCIÓN* nunca instalar Dusk en un servidor en producción. Podría
 pasar, que personas ajenas se puedan autenticar con la aplicación sin
 ser usuarios.
+
+**** Empezamos a crear los tests.
+Lo primero es importar lo que vayamos a necesitar de Pest/laravel.
+Con Pest vamos a usar funciones y no clases. De Pest:
+#+begin_src php
+<?php
+use App\Models\{Category, User};
+use function Pest\Laravel\{actingAs, get};
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+beforeEach(fn () => User::factory()->create());
+#+end_src
+Importamos dos funciones del /namespace/ =Pest\Laravel= como son
+~actingAs~ y ~get~.
+
+También podríamos importar ~put~, ~post~, ... Para cuando necesitemos
+actuar como un usuario, por ejemplo un usuario identificado en una
+zona en la que es necesaria la identificación, usaremos ~actingAs~.
+
+Las funciones ~get~, ~post~,... nos servirán para simular peticiones
+http en un CRUD.
+
+Importamos ~get~ pero no el resto, luego veremos por qué.
+
+El import de ~RefreshDatabase~ hará que los seeds y las migraciones se
+ejecuten automáticamente cada vez que lanzan los test.
+
+Con ~beforeEach~ conseguimos crear un usuario para ese test, y lo
+usaremos con ~actingAs~.
+
+**** El primer test.
+#+begin_src php
+<?php
+it('has author')->assertDatabaseHas('users', [
+  'id' => 1,
+]);
+#+end_src
+Con este test comprobamos que existe un usuario para nuestros test, el
+que estamos creando, en la tabla de usuarios con 'id' == 1.
+Podemos comprobarlo yendo a la terminal y ejecutando:
+#+begin_src bash
+sail artisan test --filter ArticleTest
+#+end_src
+
+Y nos muestra =it has author=, entre otras cosas.
+Añadimos más test:
+#+begin_src php
+<?php
+it('user not logged cannot access to articles page', function ()
+{
+  get('/articles')
+    ->assertRedirect('/login');
+});
+#+end_src
+
+En el primer test no añadimos un cierre (closure), pero en este
+segundo test, sí añadimos una función anónima donde pondremos lo que
+queremos que haga el test, en este caso comprobar que los usuarios no
+identificados no pueden acceder a la página de artículos.
+
+Con el siguiente test vamos a comprobar que los usuarios identificados
+pueden acceder a la página de artículos:
+#+begin_src php
+<?php
+
+it('user logged can access to articles page', function ()
+{
+  actingAs(User::first())
+    ->get('/articles')
+    ->assertStatus(200);
+});
+#+end_src
+
+Vemos el uso de actingAs para usar al primer usuario de la BD para
+idenfiticarse y acceder a la págigna (get). Si funciona bien
+deberíamos obtener una respuesta http 200, assertStatus.
+
+Ahora queremos asegurarnos de que un usuario identificado puede
+visitar la página para crear un artículo y también que puede crear un
+artículo:
+#+begin_src php
+<?php
+it('user logged can access to create article page', function ()
+{
+  actingAs(User::first())
+    ->get('/articles/create')
+    ->assertStatus(200);
+});
+
+it('user logged can create article', function ()
+{
+  actingAs(User::first())
+    ->post('/articles', [
+      'title' => 'Article title',
+      'content' => 'Article content',
+      'category_id' => Category::factory()->create()->id,
+    ])
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido creado correctamente');
+});
+#+end_src
+
+Para comprobar la creación de artículos, vamos a actuar como el primer
+usuario que encontremos en BD y encadenamos una función ~post()~; le
+estamos diciendo que hacemos una petición post con una serie de datos
+para almacenar en BD con lo que le estamos diciendo que ejecute la
+función ~store~ del ArticleController. Si todo va bien se nos
+redirecciona a la página de articles y tenemos que ver una sesión con
+el nombre "success" y el título 'El artículo ha sido creado correctamente'
+
+
+Para comprobar que se puede acceder a la página de editar un artículo,
+primero creamos uno, luego accedemos a la página. Para comprobar que
+se puede editar haremos lo mismo, pero en esta ocasión si lo
+editamos. Observad el omnipresente ~actingAs~:
+#+begin_src php
+<?php
+it('user logged can access to edit article page', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->get("/articles/{$article->id}/edit")
+    ->assertStatus(200);
+});
+//------------- comprobar que se puede editr
+it('user logged can edit article', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->put("/articles/{$article->id}", [
+      'title' => 'Article title updated',
+      'content' => 'Article content updated',
+      'category_id' => Category::factory()->create()->id,
+    ])
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido actualizado correctamente');
+});
+#+end_src
+
+Ahora a probar el borrado
+#+begin_src php
+<?php
+it('user logged can delete article', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->delete("/articles/{$article->id}")
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido eliminado correctamente');
+});
+
+#+end_src
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 El fichero =index.blade.php= terminado:
 #+begin_src xml
@@ -1568,7 +1781,8 @@ El fichero =index.blade.php= terminado:
                 </svg>
               </a> |
               <form class="inline" method="POST"
-                    action="{{ route("articles.destroy", ["article" => $article]) }}">
+                    action="{{ route("articles.destroy",
+                            ["article" => $article]) }}">
                 @csrf
                 @method("DELETE")
                 <button type="submit"
