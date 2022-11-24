@@ -1135,6 +1135,7 @@ hemos introducido y validado en el formulario:
 public function store(ArticleRequest $request): RedirectResponse
 {
   $validated = $request->safe()->only(['title', 'content', 'category_id']);
+  $validated['user_id'] = auth()->id();
   Article::create($validated);
   //Para trabajar con traducciones la parte de __("...")
   session()->flash("success", __("El artículo ha sido creado correctamente"));
@@ -1227,21 +1228,21 @@ controlador que vamos a implementar a continuación. También el
 carácter de pipeline al final del bloque. Vamos a nuestro fichero
 =ArticleController.php= y editamos el método =edit=
 #+begin_src php
-  <?php
-  /**
-   ,* Show the form for editing the specified resource.
-   ,*
-   ,* @param Article $article
-   ,* @return Renderable
-   ,*/
-  public function edit(Article $article): Renderable
-  {
-      //dd($article);
-      $title = __("Actualizar artículo");
-      //***al pasar el $article, al ir al formulario ya estará todo relleno***
-      $action = route("articles.update", ["article" => $article]);
-      return view("articles.form", compact("article", "title", "action"));
-  }
+<?php
+/**
+ * Show the form for editing the specified resource.
+ *
+ * @param Article $article
+ * @return Renderable
+ */
+public function edit(Article $article): Renderable
+{
+    //dd($article);
+    $title = __("Actualizar artículo");
+    //***al pasar el $article, al ir al formulario ya estará todo relleno***
+    $action = route("articles.update", ["article" => $article]);
+    return view("articles.form", compact("article", "title", "action"));
+}
 #+end_src
 
 Observad que es muy parecido a lo que hicimos en la creación de
@@ -1639,115 +1640,99 @@ redirecciona a la página de articles y tenemos que ver una sesión con
 el nombre "success" y el título 'El artículo ha sido creado correctamente'
 
 
+Para comprobar que se puede acceder a la página de editar un artículo,
+primero creamos uno, luego accedemos a la página. Para comprobar que
+se puede editar haremos lo mismo, pero en esta ocasión si lo
+editamos. Observad el omnipresente ~actingAs~:
+#+begin_src php
+<?php
+it('user logged can access to edit article page', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
 
+  actingAs($user)
+    ->get("/articles/{$article->id}/edit")
+    ->assertStatus(200);
+});
+//------------- comprobar que se puede editr
+it('user logged can edit article', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-El fichero =index.blade.php= terminado:
-#+begin_src xml
-<x-app-layout>
-  <x-slot name="header">
-    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-      {{ __('Artículos') }}
-    </h2>
-  </x-slot>
-
-  <section class="text-gray-600 body-font overflow-hidden">
-    <div class="container px-5 py-24 mx-auto">
-      <div class="mb-16 -my-8">
-        <a href="{{ route("articles.create") }}"
-           class="flex w-64 text-white bg-indigo-500
-                  border-0 py-2 px-8 focus:outline-none
-                  hover:bg-indigo-600 rounded text-lg">
-          {{ __("Crear un nuevo artículo") }}
-        </a>
-      </div>
-
-      <div class="-my-8 divide-y-2 divide-gray-100">
-        @foreach($articles as $article)
-          <div class="py-8 flex flex-wrap md:flex-nowrap">
-            <div class="md:w-64 md:mb-0 mb-6 flex-shrink-0 flex flex-col">
-              <span class="font-semibold title-font text-gray-700">
-                 {{ $article->category->name }}
-              </span>
-              <span class="mt-1 text-gray-500 text-sm">
-                {{ $article->created_at_formatted }}
-              </span>
-            </div>
-            <div class="md:flex-grow">
-              <h2 class="text-2xl font-medium text-gray-900 title-font mb-2">
-                 {{ $article->title }}
-              </h2>
-              <p class="leading-relaxed">{{ $article->excerpt }}</p>
-              <a href="{{ route("articles.show", ["article" => $article]) }}"
-                 class="text-indigo-500 inline-flex items-center mt-4">
-                    {{ __("Ver detalle") }}
-                <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
-                     stroke="currentColor" stroke-width="2"
-                     fill="none" stroke-linecap="round"
-                     stroke-linejoin="round">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5l7 7-7 7"></path>
-                </svg>
-              </a> |
-              <a href="{{ route("articles.edit", ["article" => $article]) }}"
-                 class="text-indigo-500 inline-flex items-center mt-4">
-                       {{ __("Editar") }}
-                <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
-                     stroke="currentColor" stroke-width="2"
-                     fill="none" stroke-linecap="round"
-                     stroke-linejoin="round">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5l7 7-7 7"></path>
-                </svg>
-              </a> |
-              <form class="inline" method="POST"
-                    action="{{ route("articles.destroy", ["article" => $article]) }}">
-                @csrf
-                @method("DELETE")
-                <button type="submit"
-                        class="text-red-500 inline-flex items-center mt-4">
-                        {{ __("Eliminar") }}
-                  <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
-                       stroke="currentColor" stroke-width="2"
-                       fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 12h14"></path>
-                    <path d="M12 5l7 7-7 7"></path>
-                  </svg>
-                </button>
-              </form>
-            </div>
-          </div>
-        @endforeach
-
-        {{ $articles->links() }}
-      </div>
-    </div>
-  </section>
-</x-app-layout>
+  actingAs($user)
+    ->put("/articles/{$article->id}", [
+      'title' => 'Article title updated',
+      'content' => 'Article content updated',
+      'category_id' => Category::factory()->create()->id,
+    ])
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido actualizado correctamente');
+});
 #+end_src
+
+Ahora a probar el borrado
+#+begin_src php
+<?php
+it('user logged can delete article', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->delete("/articles/{$article->id}")
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido eliminado correctamente');
+});
+
+#+end_src
+
+
+
+
+* Spatie Laravel Media Library
+Laravel Media Library es un paquete poderoso y gratuito que puede
+asociar todo tipo de archivos con modelos Eloquent. Además de eso,
+puede generar miniaturas e imágenes "responsivas".¡También puede rastrear
+todos sus medios en todos los sistemas de archivos, y mucho más!
+...
+
+https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
+
+https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/
+
+https://spatie.be/courses/discovering-laravel-media-library/introducing-laravel-media-library
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \newpage
 
