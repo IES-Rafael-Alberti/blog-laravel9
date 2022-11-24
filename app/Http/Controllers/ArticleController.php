@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ArticleRequest;
 use App\Models\Article;
+use Barryvdh\Debugbar\Facades\Debugbar;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\RedirectResponse;
 
@@ -59,6 +60,7 @@ class ArticleController extends Controller
   public function show(Article $article): Renderable
   {
     $article->load("user:id,name", "category:id,name");
+    Debugbar::info($article);
     return view("articles.show", compact("article"));
   }
 
