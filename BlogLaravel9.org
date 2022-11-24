@@ -59,9 +59,10 @@ sail up
 sail artisan make:model Category -m
 #+end_src
 
-
-El modelo tendrá una columna ~id()~ de tipo =BigInteger Unsigned
-Primary Key=, y una columna para el nombre de tipo =Varchar de 40=:
+Vamos a modificar la migración creada para poner las columnas
+necesarias para nuestra tabla. El modelo tendrá una columna ~id()~ de
+tipo =BigInteger Unsigned Primary Key=, y una columna para el nombre
+de tipo =Varchar de 40=:
 #+begin_src php
 <?php
 ···

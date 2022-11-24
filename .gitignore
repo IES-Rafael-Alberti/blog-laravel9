@@ -18,3 +18,5 @@ yarn-error.log
 /.vscode
 composer.lock
 yarn.lock
+app/Http/Controllers/ArticleController.php
+.gitignore
