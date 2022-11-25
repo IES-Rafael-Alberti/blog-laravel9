@@ -1719,6 +1719,46 @@ puede generar miniaturas e imágenes "responsivas".¡También puede rastrear
 todos sus medios en todos los sistemas de archivos, y mucho más!
 ...
 
+** Instalación y primeros pasos
+**** Instalación:
+#+begin_src bash
+sail composer require "spatie/laravel-medialibrary:^10.0.0"
+#+end_src
+
+**** Preparar la base de datos.
+#+begin_src bash
+sail artisan vendor:publish \
+--provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" \
+--tag="migrations"
+#+end_src
+**** Ejecutar las migraciones (crea tabla para los medios).
+#+begin_src bash
+sail artisan migrate
+#+end_src
+
+**** Publicar el fichero de configuración.
+Es un paso opcional, pero lo vamos a hacer porque pretendemos cambiar
+el =disk= donde se guardan los archivos.
+#+begin_src bash
+sail artisan vendor:publish \
+--provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" \
+--tag="config"
+#+end_src
+
+Esta es la configuración por defecto del disco donde se van a guardar
+los "medios";
+
+#+begin_src php
+<?php
+/*
+     ,* The disk on which to store added files and derived images by default. Choose
+     ,* one or more of the disks you've configured in config/filesystems.php.
+     ,*/
+    'disk_name' => env('MEDIA_DISK', 'public'),
+...
+#+end_src
+
+
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
 
 https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/
