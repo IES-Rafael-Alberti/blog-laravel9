@@ -8,7 +8,8 @@
 
         <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
             @csrf
-
+            <!-- Avatar Image -->
+            <x-avatar-input />
             <!-- Name -->
             <div class="mt-4">
                 <x-input-label for="name" :value="__('Name')" />
@@ -28,13 +29,13 @@
             </div>
 
           <!-- Avatar Image -->
-          <div class="mt-4">
+{{--          <div class="mt-4">
             <x-input-label  for="avatar" :value="__('Avatar')" />
 
             <x-text-input id="avatar" class="block mt-1 w-full" type="file" name="avatar" :value="old('avatar')" />
 
             <x-input-error :messages="$errors->get('avatar')" class="mt-2" />
-          </div>
+          </div>--}}
 
             <!-- Password -->
             <div class="mt-4">
