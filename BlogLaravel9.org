@@ -1712,14 +1712,57 @@ artículo que borrar, por ello, en primer lugar lo creamos y luego
 procedemos con el borrado.
 
 
-* Spatie Laravel Media Library
+* Subida de imagen de avatar
+Para poder poner una imagen de usuario en el perfil, avatar,
+necesitamos dar una serie de pasos.
+ - Crear un proyecto, nuestro blog.
+ - Modificar el formulario de registro
+ - Instalar Spatie Media Library
+ - Actualizar la BD, en este ejemplo parece que nos lo ahorramos
+ - Cambiar el modelo de usuario, User
+ - Validación de la imagen en el formulario
+ - Mostrar una imagen miniatura, thumbnail, junto al nombre
+
+** Crear proyecto
+Nada que hacer, ya esta:-).
+
+** Modelo el formulario de registro
+Necesitamos añadir un campo para la subida de la imagen. Buscamos el
+formulario de registro, que están en una vista (resources/views/auth),
+=register.blade.php= y allí vamos a añadir (bajo el campo que queráis)
+lo siguiente:
+#+begin_src html
+<!-- Avatar Image -->
+ <div class="mt-4">
+   <x-input-label for="email" :value="__('Avatar')" />
+
+   <x-text-input id="avatar" class="block mt-1 w-full" type="file"
+                 name="avatar" :value="old('avatar')" />
+
+   <x-input-error :messages="$errors->get('avatar')" class="mt-2" />
+ </div>
+#+end_src
+Yo lo he añadido debajo de la petición del nombre. Adicionalmente se
+le pueden modificar los css, clases tailwind, del botón para que salga
+más bonito.
+
+También hay que destacar que no he puesto ~required~.
+
+Para que funcione no hay que olvidar modificar el formulario para que
+sea "multipart/form-data":
+#+begin_src html
+<form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
+#+end_src
+
+
+** Spatie Laravel Media Library
 Laravel Media Library es un paquete poderoso y gratuito que puede
 asociar todo tipo de archivos con modelos Eloquent. Además de eso,
 puede generar miniaturas e imágenes "responsivas".¡También puede rastrear
 todos sus medios en todos los sistemas de archivos, y mucho más!
 ...
 
-** Instalación y primeros pasos
+*** Instalación y configuración
 **** Instalación:
 #+begin_src bash
 sail composer require "spatie/laravel-medialibrary:^10.0.0"
@@ -1735,6 +1778,29 @@ sail artisan vendor:publish \
 #+begin_src bash
 sail artisan migrate
 #+end_src
+
+Generará una tabla de base de datos llamada media que usa *[[https://appdividend.com/2018/05/18/laravel-polymorphic-relationship-tutorial-example/][Polymorphic
+Relations]]* para almacenar los datos. Puedes ver un error como este:
+
+#+begin_example
+Error : [Illuminate\Database\QueryException]
+SQLSTATE[42000]: Syntax error or access violation: 1064 You have an
+error in your SQL syntax; check the manual that corresponds to your
+MariaDB server version of the right syntax to use ‘json not null,
+custom_properties json not null, order_column int unsigned nu’ at line
+1 (SQL: create table m edia(id int unsigned not null auto_increment
+primary key, model_id int unsigned not null, model _typevarchar(191)
+not null, collection_name varchar(191) not null, name varchar(191) not
+null, file_namevarchar(191) not null, mime_type varchar(191)
+null, disk varchar(191) not null, size int unsigned not
+null, manipulations json not null, custom_properties json not
+null, order_column int unsigned null, created_at timestamp
+null, updated_at timestamp null) default character set u tf8mb4
+collate utf8mb4_unicode_ci)
+#+end_example
+
+Posible solución: cambiar el tipo de datos de =json= a =text= en la
+base de datos >> migración >> =archivo create_media_table.php=.
 
 **** Publicar el fichero de configuración.
 Es un paso opcional, pero lo vamos a hacer porque pretendemos cambiar
@@ -1758,29 +1824,104 @@ los "medios";
 ...
 #+end_src
 
+** Cambiar BD
+** Cambiar el modelo de usuario User
+Ahora, vamos a cambiar el modelo =user.php= para trabajar con
+Media Library. Primero, añadimos  siguiente código al archivo
+=User.php=:
+#+begin_src php
+<?php
+//User.php
+
+use Spatie\MediaLibrary\HasMedia\HasMediaTrait;
+use Spatie\MediaLibrary\HasMedia\HasMedia;
+
+class User extends Authenticatable implements HasMedia
+{
+    // ...
+    use HasMediaTrait;
+}
+#+end_src>
+
+Aquí podemos agregar HasMediatrait y Hasmedia.Ambos provienen de la biblioteca de medios.
+
+Ahora, vamos a RegisteredUserController y añadimos el siguiente código al método ~store()~:
+#+begin_src php
+
+#+end_src
+
+
+
+
+https://www.youtube.com/watch?v=rbG0wWbPo-U
+//register view wiht alpine.js
+<!--Picture -->
+<x-picture-input>
+sail artisan make:component picture-input --view
+sail npm run dev
+
+open component and fill with
+https://heroicons.com/ for upload icon
+#+begin_src html
+  <div class="flex items-center" x-data="picturePreview()">
+     <div class="rounded-md bg-gray-200 mr-2">
+       <img id="preview" src="" alt="" class="w-24 h-24 rounded-md object-cover">
+     </div>
+     <div>
+       <x-button @click="document.getElementById('avatar').click()" class="relative">
+         <div class="flex items-center">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2">
+             <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+           </svg>
+         Subir imagen
+         </div>
+         <input @change="showPreview(event)" type="file" name="avatar" id="avatar class="absolute inset-0 -z-10 opacity-0">
+       </x-button>
+     </div>
+     <script>
+       function picturePreview(){
+          return {
+                showPreview: (event) => {
+                     if (event.target.files.lenght >0)
+                           var src= URL.createObjectURL(event.target.files[0]);
+                           document.getElemenByID('preview').src=src;
+                  }
+          }
+       }
+     </script>
+  </div>
+#+end_src
+
+
+
+ sail artisan make:migration add_avatar_to_users_table --table=users
+
+en la migración metemos
+
+$table->string('avatar')->nullable(); //podriamos poner una imagen por defecto
+
+sail artisan storage:link
+
+
+
 
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
+
+https://www.itsolutionstuff.com/post/laravel-profile-image-upload-tutorial-with-exampleexample.html
 
 https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/
 
 https://spatie.be/courses/discovering-laravel-media-library/introducing-laravel-media-library
 
+https://www.itsolutionstuff.com/post/how-to-add-extra-field-in-registration-form-in-laravelexample.html
+
+Customize registration and login
+https://dev.to/kingsconsult/customize-laravel-auth-laravel-breeze-registration-and-login-1769
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+** Actualizar la BD.
+El principal cambio aquí será modificar la migración para la tabla =users=.
 
 
 \newpage
