@@ -1712,14 +1712,55 @@ artículo que borrar, por ello, en primer lugar lo creamos y luego
 procedemos con el borrado.
 
 
-* Spatie Laravel Media Library
+\newpage
+
+* TODO Subida de imagenes
+Para poder subir imágenes necesitamos dar una serie de pasos.
+ - Crear un proyecto, nuestro blog.
+ - Instalar Spatie Media Library
+ - Actualizar la BD
+ - Crear formulario subida imagen
+
+** Crear proyecto
+Nada que hacer, ya esta:-).
+
+** Modelo el formulario de registro
+Necesitamos añadir un campo para la subida de la imagen. Buscamos el
+formulario de registro, que están en una vista (resources/views/auth),
+=register.blade.php= y allí vamos a añadir (bajo el campo que queráis)
+lo siguiente:
+#+begin_src html
+<!-- Avatar Image -->
+ <div class="mt-4">
+   <x-input-label for="email" :value="__('Avatar')" />
+
+   <x-text-input id="avatar" class="block mt-1 w-full" type="file"
+                 name="avatar" :value="old('avatar')" />
+
+   <x-input-error :messages="$errors->get('avatar')" class="mt-2" />
+ </div>
+#+end_src
+Yo lo he añadido debajo de la petición del nombre. Adicionalmente se
+le pueden modificar los css, clases tailwind, del botón para que salga
+más bonito.
+
+También hay que destacar que no he puesto ~required~.
+
+Para que funcione no hay que olvidar modificar el formulario para que
+sea "multipart/form-data":
+#+begin_src html
+<form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
+#+end_src
+
+
+** Spatie Laravel Media Library, para subida de ficheros de imágenes
 Laravel Media Library es un paquete poderoso y gratuito que puede
 asociar todo tipo de archivos con modelos Eloquent. Además de eso,
 puede generar miniaturas e imágenes "responsivas".¡También puede rastrear
 todos sus medios en todos los sistemas de archivos, y mucho más!
 ...
 
-** Instalación y primeros pasos
+*** Instalación y configuración
 **** Instalación:
 #+begin_src bash
 sail composer require "spatie/laravel-medialibrary:^10.0.0"
@@ -1735,6 +1776,29 @@ sail artisan vendor:publish \
 #+begin_src bash
 sail artisan migrate
 #+end_src
+
+Generará una tabla de base de datos llamada media que usa *[[https://appdividend.com/2018/05/18/laravel-polymorphic-relationship-tutorial-example/][Polymorphic
+Relations]]* para almacenar los datos. Puedes ver un error como este:
+
+#+begin_example
+Error : [Illuminate\Database\QueryException]
+SQLSTATE[42000]: Syntax error or access violation: 1064 You have an
+error in your SQL syntax; check the manual that corresponds to your
+MariaDB server version of the right syntax to use ‘json not null,
+custom_properties json not null, order_column int unsigned nu’ at line
+1 (SQL: create table m edia(id int unsigned not null auto_increment
+primary key, model_id int unsigned not null, model _typevarchar(191)
+not null, collection_name varchar(191) not null, name varchar(191) not
+null, file_namevarchar(191) not null, mime_type varchar(191)
+null, disk varchar(191) not null, size int unsigned not
+null, manipulations json not null, custom_properties json not
+null, order_column int unsigned null, created_at timestamp
+null, updated_at timestamp null) default character set u tf8mb4
+collate utf8mb4_unicode_ci)
+#+end_example
+
+Posible solución: cambiar el tipo de datos de =json= a =text= en la
+base de datos >> migración >> =archivo create_media_table.php=.
 
 **** Publicar el fichero de configuración.
 Es un paso opcional, pero lo vamos a hacer porque pretendemos cambiar
@@ -1758,27 +1822,299 @@ los "medios";
 ...
 #+end_src
 
+\newpage
+
+* Subida de imagen de avatar
+Para poder poner una imagen de usuario en el perfil, avatar,
+necesitamos dar una serie de pasos.
+ - Modificar el formulario de registro
+   + Crear un componente y usarlo en el formulario
+   + Validación de la imagen en el formulario
+ - Actualizar la BD y el almacenamiento
+   - Crear una migración
+   - Cambiar el modelo de usuario, User
+   - Configurar el espacio de almacenamiento
+ - Mostrar una imagen miniatura, thumbnail, junto al nombre
+
+** Modificación formulario registro de Breeze
+Vamos a modificar el formulario de registro de Breeze para poder
+añadir una imagen avatar para el usuario. Hay algunas cosas no
+necesarias, como la visualización al subir, pero así trabajamos un
+poco con Alpine.js, que es el mini framework JavaScript que viene con
+Laravel. Adicionalmente vamos a ver cómo se crea un component
+
+*Tutorial vídeo para modificar Breeze registration form*.
+Seguimos el vídeo https://www.youtube.com/watch?v=rbG0wWbPo-U
+
+*** Crear componente input para imagen
+Vamos a crear un componente para la subida de la imagen del
+avatar. Primero lo creamos con artisan:
+#+begin_src bash
+sail artisan make:component avatar-input --view
+#+end_src
+
+Con ~--view~ le indicamos que sólo queremos la vista
+correspondiente. Si no ponemos ~--view~, nos crearía la clase
+correspondiente. Esto nos serviría en caso de querer pasar parámetros
+al componente para usarlo de plantilla... En este caso nos basta con
+la vista.
+
+Para rellenar la vista, primero vamos a [[https://heroicons.com/][heroicons.com]] y escogemos un
+icono para la subida de archivos, pinchamos sobre él y copiamos el
+"svg", o "jsx" si es para usar con React.
+
+Abrimos =avatar-input.blade.php= que está en
+=resources/views/components=, y lo editamos metiendo en él, el
+componente que acabamos de bajar.
+
+Observad el cambio de ~x-button~ por ~x-primary-button~, en nuestra
+instalación de breeze, se instala el segundo component y no el que
+usan en el vídeo.
+
+#+begin_src html
+<div class="flex items-center" x-data="picturePreview()">
+  <div class="rounded-md bg-gray-200 mr-2">
+    <img id="preview" src="" alt=""
+         class="w-24 h-24 rounded-md object-cover">
+  </div>
+  <div>
+   <x-primary-button
+      @click="document.getElementById('avatar').click()"
+     class="relative">
+      <div class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             fill="none" viewBox="0 0 24 24"
+             stroke-width="1.5" stroke="currentColor"
+             class="w-6 h-6 mr-2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 16.5V9.75m0 0l3 3m-3-3l-3
+                   3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0
+                   0110.233-2.33 3 3 0 013.758 3.848A3.752
+                   3.752 0 0118 19.5H6.75z" />
+        </svg>
+        Subir imagen
+      </div>
+      <input @change="showPreview(event)"
+             type="file" name="avatar"
+             id="avatar class=" absolute inset-0 -z-10 opacity-0">
+   </x-primary-button>
+</div>
+  <script>
+    function picturePreview() {
+      return {
+        showPreview: (event) => {
+          if (event.target.files.length > 0)
+            var src = URL.createObjectURL(event.target.files[0]);
+          document.getElementById('preview').src = src;
+        }
+      }
+    }
+  </script>
+</div>
+#+end_src
+Hay que destacar que no he puesto ~required~ en el input.
+
+*** Modificar barra de navegación
+En =navigation.blade.php=, buscamos la sección =Settings Dropdown=, y
+ahí donde está
+#+begin_src html
+<div>
+  {{ Auth::user()->name }}
+</div>
+#+end_src
+
+vamos a añadir la imagen del avatar, justo delante, pero como no es un
+campo obligatorio, tenemos que comprobar que existe con una directiva
+~if~ de Blade:
+
+#+begin_src html
+<div class="flex items-center">
+  @if(Auth::user()->avatar)
+   <img src="{{ asset(Auth::user()->avatar) }}" alt=""
+        class="w-8 h-8 rounded-full object-cover mr-2">
+   <div>
+     {{ Auth::user()->name }}
+   </div>
+</div>
+#+end_src
+
+*** Modificar el formulario de registro
+Lo añadimos justo encima de la petición del nombre. Podéis comprobar
+que lo único que necesitamos hacer es poner el componente que hemos
+creado.
+#+begin_src html
+<!-- Avatar Image -->
+ <x-avatar-input />
+<!-- Name -->
+#+end_src
+
+Para que funcione hay que modificar el formulario para que
+sea =multipart/form-data=:
+#+begin_src html
+<form method="POST" action="{{ route('register') }}"
+enctype="multipart/form-data">
+#+end_src
+
+*** Validar el campo del avatar en el formulario
+Tenemos que modificar la validación para añadir el nuevo campo. La
+validación del registro de un usuario se hace en
+=RegisteredUserController.php=. Buscamos la función =store= y la
+modificamos para que nos quede así:
+#+begin_src php
+<?php
+public function store(Request $request): RedirectResponse
+{
+    $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        'avatar' => ['file','mimes:jpg,png,gif','max:3072']
+    ]);
+
+    $path=null;
+    if($request->hasFile('avatar')) {
+      $path = $request->file('avatar')->storePublicly('avatars');
+    }
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'avatar'  => $path ,
+    // isset($request->avatar) ? ($request->avatar) : 'defaultAvatar.png'
+    ]);
+
+    event(new Registered($user));
+    Auth::login($user);
+    return redirect(RouteServiceProvider::HOME);
+}
+#+end_src
+
+Con la línea:
+#+begin_src php
+<?php
+'avatar' => ['file','mimes:jpg,png,gif','max:3072']
+#+end_src
+
+, indicamos que el campo es de tipo fichero, los tipos aceptable son
+jpg, png y gif. El tamaño máximo aceptado será de 3072 KB.
+
+Las líneas:
+#+begin_src php
+<?php
+$path=null;
+    if($request->hasFile('avatar')) {
+      $path = $request->file('avatar')->storePublicly('avatars');
+    }
+#+end_src
+
+, sirven para comprobar si se está subiendo una imagen. Si se sube se
+obtiene su path y se almacena en el disco configurado.
+
+El siguiente paso es crear y guardar el nuevo usuario en la BD con el
+nuevo campo =avatar=.
+#+begin_src php
+<?php
+...
+'avatar'  => $path ,
+...
+#+end_src
+
+
+** Modificación BD
+Creamos una nueva migración para añadir la columna "avatar" a la tabla
+de usuarios. Normalmente no haría falta especificar la tabla, ya que
+usamos la convención de Laravel para las migraciones.
+
+*** Migraciones
+#+begin_src bash
+sail artisan make:migration add_avatar_to_users_table --table=users
+#+end_src
+
+En la migración recién creada ponemos en la función ~up()~
+#+begin_src php
+<?php
+$table->string('avatar')->nullable(); //podriamos poner una imagen por defecto
+#+end_src
+
+Luego actualizamos las migraciones:
+#+begin_src
+sail artisan migrate
+#+end_src
+
+*** Modelo User
+También necesitamos un mínima modificación en el modelo ~User~,
+añadir el campo =avatar= a la variable ~$fillable~, :
+#+begin_src php
+<?php
+protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'avatar',
+    ];
+#+end_src
+
+*** Configurar los discos
+En =config/filesystems.php=, tenemos toda la configuración para
+espacios de almacenamiento en Laravel. Podéis ver más en la
+documentación de Laravel, o en la documentación del curso pasado.
+Buscamos, al final, la sección =links= y Vamos a añadir esto:
+#+begin_src php
+<?php
+'links' => [
+        public_path('avatars') => storage_path('app/avatars'),
+        public_path('storage') => storage_path('app/public'),
+    ],
+#+end_src
+La segunda fila no es necesario salvo que vayamos a guardar otras
+cosas diferentes a los avatares.
+
+Si no queremos tener que andar configurando discos y creando rutas
+para acceder a los ficheros, puesto que la página sólo tiene acceso a
+la parte del directorio =public=, vamos a hacer lo siguiente para que
+los directorios =storage/avatars= y =storage/publilc= sean accesibles
+sin muchas vueltas:
+#+begin_src bash
+sail artisan storage:link
+#+end_src
+
+*** Diseño «responsivo»
+Si queremos que aparezca el avatar en la vista responsiva (móvil)
+vamos a =navigation.blade.php=, buscamos donde se expone el nombre y
+poner:
+#+begin_src html
+<!-- Responsive Settings Options -->
+<div class="pt-4 pb-1 border-t border-gray-200">
+  <div class="px-4">
+    @if(Auth::user()->avatar)
+      <img src="{{ asset(Auth::user()->avatar) }}" alt=""
+           class="w-8 h-8 rounded-full object-cover mr-2">
+      <div>{{ Auth::user()->name }}</div>
+    @endif
+    <div class="font-medium text-base text-gray-800">
+      {{ Auth::user()->name }}
+    </div>
+    <div class="font-medium text-sm text-gray-500">
+      {{ Auth::user()->email }}
+    </div>
+</div>
+#+end_src
+
+\newpage
 
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
+
+https://www.itsolutionstuff.com/post/laravel-profile-image-upload-tutorial-with-exampleexample.html
 
 https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/
 
 https://spatie.be/courses/discovering-laravel-media-library/introducing-laravel-media-library
 
+https://www.itsolutionstuff.com/post/how-to-add-extra-field-in-registration-form-in-laravelexample.html
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Customize registration and login
+https://dev.to/kingsconsult/customize-laravel-auth-laravel-breeze-registration-and-login-1769
 
 
 
