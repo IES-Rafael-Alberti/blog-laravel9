@@ -1896,7 +1896,7 @@ usan en el vídeo.
       </div>
       <input @change="showPreview(event)"
              type="file" name="avatar"
-             id="avatar class=" absolute inset-0 -z-10 opacity-0">
+             id="avatar" class="absolute inset-0 -z-10 opacity-0">
    </x-primary-button>
 </div>
   <script>
@@ -1935,6 +1935,7 @@ campo obligatorio, tenemos que comprobar que existe con una directiva
    <div>
      {{ Auth::user()->name }}
    </div>
+  @endif
 </div>
 #+end_src
 
