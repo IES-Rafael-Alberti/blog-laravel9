@@ -10,7 +10,7 @@
         </svg>
         Subir imagen
       </div>
-      <input @change="showPreview(event)" type="file" name="avatar" id="avatar class=" absolute inset-0 -z-10 opacity-0">
+      <input @change="showPreview(event)" type="file" name="avatar" id="avatar" class="absolute inset-0 -z-10 opacity-0">
     </x-primary-button>
   </div>
   <script>
