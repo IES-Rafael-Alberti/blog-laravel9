@@ -1,4 +1,4 @@
-% Created 2022-11-21 lun 20:03
+% Created 2022-12-01 jue 11:50
 % Intended LaTeX compiler: pdflatex
 \documentclass[11pt]{article}
 \usepackage[utf8]{inputenc}
@@ -49,12 +49,12 @@
 
 
 \section{Blog con Laravel 9 sail}
-\label{sec:org652743b}
+\label{sec:org7da8c7d}
 El código del proyecto se puede encontrar \href{https://github.com/IES-Rafael-Alberti/blog-laravel9.git}{aquí}.
 
 
 \subsection{Crear proyecto}
-\label{sec:orgf366841}
+\label{sec:org55b6b35}
 \begin{minted}[]{bash}
 curl -s https://laravel.build/blog-laravel9 | bash
 cd curso-basico-laravel9
@@ -62,20 +62,21 @@ sail up
 \end{minted}
 
 \subsection{Modelo de datos}
-\label{sec:org61be0dc}
+\label{sec:orgaccecaa}
 \subsubsection{Modelos y sus migraciones}
-\label{sec:orged43f58}
+\label{sec:org23ecab8}
 
 \begin{enumerate}
 \item Creamos el modelo \emph{Category} y su migración añadiendo \texttt{-m}
-\label{sec:org41aa717}
+\label{sec:org264580f}
 \begin{minted}[]{bash}
 sail artisan make:model Category -m
 \end{minted}
 
-
-El modelo tendrá una columna \texttt{id()} de tipo \texttt{BigInteger Unsigned
-Primary Key}, y una columna para el nombre de tipo \texttt{Varchar de 40}:
+Vamos a modificar la migración creada para poner las columnas
+necesarias para nuestra tabla. El modelo tendrá una columna \texttt{id()} de
+tipo \texttt{BigInteger Unsigned Primary Key}, y una columna para el nombre
+de tipo \texttt{Varchar de 40}:
 \begin{minted}[]{php}
 <?php
 ···
@@ -97,7 +98,7 @@ key...
 Varchar viene expresado como string.
 
 \item Ahora el modelo \emph{Article}
-\label{sec:org8303fb7}
+\label{sec:orgb9f222d}
 \begin{minted}[]{bash}
 sail artisan make:model Article -m
 \end{minted}
@@ -129,7 +130,7 @@ public function up()
 \end{enumerate}
 
 \subsubsection{Modelo Category}
-\label{sec:orgc1dee90}
+\label{sec:org459db69}
 Vamos a tocar el modelo creado automáticamente para ajustarlo.
 \begin{minted}[]{php}
 <?php
@@ -170,7 +171,7 @@ class Category extends Model
 
 \begin{enumerate}
 \item Modelo Article
-\label{sec:orgc0bd3a2}
+\label{sec:orge55b167}
 Aquí hay más cosas que cambiar:
 \begin{minted}[]{php}
 <?php
@@ -248,7 +249,7 @@ Donde 90, puede ser 100 o la cantidad de palabras que queráis que se
 muestren.
 
 \item Modelo User
-\label{sec:orgec25882}
+\label{sec:orgbae31a3}
 Vamos a reutilizar el modelo que viene predefinido en Laravel, vamos a
 dejarlo casi tal cual viene, pero vamos a añadir la relación con los artículos:
 \begin{minted}[]{php}
@@ -262,14 +263,14 @@ public function articles(): HasMany
 \end{enumerate}
 
 \subsection{Seeders y Factories}
-\label{sec:orgbcbdc3e}
+\label{sec:org35e2eb9}
 Los «Seeders» (sembradores), junto con las Factories (factorías), son un
 medio para introducir datos de prueba, falsos, en la BD y poder probar
 la aplicación.
 
 \begin{enumerate}
 \item Seeder de Category
-\label{sec:org6e6be03}
+\label{sec:orgdb6a4f5}
 Vamos a crear un \emph{seeder} para Categoy:
 \begin{minted}[]{bash}
 sail artisan make:seed CategorySeeder
@@ -317,7 +318,7 @@ hacer para registrarlos.
 Antes vamos ver cómo funcionan las factorías con una factoría para los
 artículos:
 \item Factory para Article.
-\label{sec:org4e43151}
+\label{sec:org80485cd}
 Creamos la factoría como siempre, con artisan:
 
 \begin{minted}[]{bash}
@@ -366,8 +367,37 @@ class ArticleFactory extends Factory
 }
 \end{minted}
 
+\item \textbf{Factory para Category}
+\label{sec:orge9ffba9}
+Creada con:
+\begin{minted}[]{bash}
+sail artisan make:factory CategoryFactory
+\end{minted}
+
+Que modificamos y queda:
+\begin{minted}[]{php}
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Article>
+ */
+class CategoryFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            "name" => $this->faker->text(30),
+        ];
+    }
+}
+\end{minted}
+
 \item \textbf{Actualizar DatabaseSeeder}
-\label{sec:org956ecdc}
+\label{sec:org3c399b2}
 Para utilizar todo lo creado, debemos ir a DatabaseSeeder y registrar
 el seeder y la factory creados:
 
@@ -418,7 +448,7 @@ necesitado modificarla, sólo usarla. La puedes encontrar en
 
 
 \item Ejecutar seeders
-\label{sec:orgbd968f0}
+\label{sec:org187d01d}
 Es el turno de ejecutar los seeders
 \begin{minted}[]{bash}
 sail artisan db:seed
@@ -463,13 +493,13 @@ rellenamos con los seeders.
 
 
 \subsection{Autenticación en Laravel}
-\label{sec:orgb82b922}
+\label{sec:orgcc8eb99}
 El siguiente paso es realizar el sistema de autenticación de nuestro
 blog. Para ello usaremos Breeze, una librería de Laravel:
 
 \begin{enumerate}
 \item \textbf{Laravel Breeze}
-\label{sec:orgf779fe8}
+\label{sec:orgd46db05}
 Laravel Breeze es una implementación simple y mínima de todas las
 funciones de autenticación de Laravel, incluido el inicio de sesión,
 el registro, el restablecimiento de contraseña, la verificación de
@@ -480,7 +510,7 @@ de inicio de aplicaciones de Laravel.
 
 Otras alternativas son:
 \item \textbf{Laravel Fortify} es un backend de autenticación sin cabeza para Laravel
-\label{sec:org7c1bb7b}
+\label{sec:orga41efcc}
 que implementa muchas de las funciones que se encuentran en esta
 documentación, incluida la autenticación basada en cookies y otras
 funciones como la autenticación de dos factores y la verificación de
@@ -490,7 +520,7 @@ combinación con Laravel Sanctum para proporcionar autenticación para
 un SPA que necesita autenticarse con Laravel.
 
 \item \textbf{Laravel Jetstream} es un sólido kit de inicio de aplicaciones que
-\label{sec:org9a07241}
+\label{sec:org8e05116}
 consume y expone los servicios de autenticación de Laravel Fortify con
 una hermosa y moderna interfaz de usuario impulsada por Tailwind CSS,
 Livewire o Inertia. Laravel Jetstream incluye soporte opcional para
@@ -578,9 +608,9 @@ CSS, pero esta versión que estamos usando utiliza Tailwind.
 \end{enumerate}
 
 \subsection{Controladores, recursos y rutas. Tests parte 1.}
-\label{sec:org25891eb}
+\label{sec:orgbddafd5}
 \subsubsection{Controlador de artículo: «ArticleController»}
-\label{sec:org3e1ed51}
+\label{sec:orgdf7d7fd}
 Vamos a empezar con el blog, para ello creamos nuestro primer
 controlador. El controlador es el puente entre la vista y el modelo y
 se ejecuta a través de las rutas definidas en el sistema de rutas.
@@ -612,7 +642,7 @@ ArticleController.
 
 \begin{enumerate}
 \item \textbf{Creación de los tests}
-\label{sec:org09a3b68}
+\label{sec:org248aeba}
 Más adelante veremos otra forma de hacer tests con el plugin Pest,
 pero por ahora vamos a verlos tal y como los incorpora Laravel.  En
 los controladores, la idea es crear un test por cada función del
@@ -651,7 +681,7 @@ Más adelante veremos otras alternativas que facilitan el testing.
 
 
 \subsubsection{Actualizar rutas}
-\label{sec:orgce07d7f}
+\label{sec:orgf4d0a5c}
 Si vamos a nuestro archivo de rutas ahora vemos que hay nuevas rutas
 que antes no teníamos. Entre otras se hace inclusión del fichero
 \texttt{routes/auth.php}, en el que están todas las rutas necesarias para todas
@@ -671,7 +701,7 @@ operaciones del CRUD. Además, por usar el middleware auth, no es
 posible ir a esta página sin estar autenticado.
 
 \subsubsection{Listado y paginación de artículos}
-\label{sec:org1a15431}
+\label{sec:org21d7d91}
 Nos vamos a \texttt{ArticleController}, al principio, a la función \texttt{index()}
 que es la que servirá para hacer el listado de artículos. La opción
 por defecto de \texttt{index()} es devolver un objeto de tipo \texttt{Response}, pero
@@ -855,7 +885,7 @@ tras el \texttt{@endforeach}, añadir:
 y Laravel ya hace el resto por nosotros.
 
 \subsubsection{Creación de artículos}
-\label{sec:org3717c9c}
+\label{sec:org38ba3f0}
 Antes de ir a hacer el formulario de creación de artículos y la
 función del controlador que lo llama, vamos a crear un botón en la
 vista \emph{index} para dar acceso a ese formulario de creación. Es
@@ -1053,7 +1083,7 @@ había, se maraca como \texttt{selected}.
 \end{itemize}
 
 \subsubsection{Validación de formularios de forma segura con \texttt{Form Request} y match}
-\label{sec:orgada0f90}
+\label{sec:org79b16cb}
 Lo primero que vamos a hacer es crear un Form Request con artisan:
 \begin{minted}[]{bash}
 sail artisan make:request ArticleRequest
@@ -1148,7 +1178,7 @@ apartado de la web anterior.
 
 
 \subsubsection{Persistir en BD los datos del formulario}
-\label{sec:orge4a504e}
+\label{sec:org18bd562}
 Vamos a dar contenido a la función \texttt{store} de nuestro
 \texttt{ArticleController}, que será la función que persistirá en BD, lo que
 hemos introducido y validado en el formulario:
@@ -1163,6 +1193,7 @@ hemos introducido y validado en el formulario:
 public function store(ArticleRequest $request): RedirectResponse
 {
   $validated = $request->safe()->only(['title', 'content', 'category_id']);
+  $validated['user_id'] = auth()->id();
   Article::create($validated);
   //Para trabajar con traducciones la parte de __("...")
   session()->flash("success", __("El artículo ha sido creado correctamente"));
@@ -1181,7 +1212,7 @@ verificadas... y además sólo permitimos los campos listado en el
 
 
 \subsubsection{Añadir flash en app.blade.php}
-\label{sec:org750f89d}
+\label{sec:orgbb75f5f}
 Para que se muestre el mensaje, vamos a \texttt{app.blade.php}, que es a
 donde estamos redireccionando, y buscamos la sección \texttt{Page Content},
 donde vemos la etiqueta \texttt{<main>}. Aquí vamos a «recibir» la sesión
@@ -1206,7 +1237,6 @@ Así obtendremos el mensaje de creado correctamente cuando se cree un
 artículo nuevo y se haya podido insertar en BD.
 
 
-
 \textbf{Tareilla:} En este punto, podemos probar la validación del
 formulario, enviando el formulario vacío o con datos fuera del rango
 permitido.  Si cambiamos el \textbf{true} por \textbf{false} en la función
@@ -1216,100 +1246,992 @@ Lo dejamos como estaba y seguimos con la prueba del formulario. Si lo
 ponemos todo correctamente el \texttt{dd()} podemos ver lo que llega desde el
 formulario.
 
+\subsubsection{Editar artículos. Formulario en modo edición.}
+\label{sec:orga2bd098}
+Vamos a añadir lo necesario para poder editar un artículo. Como ya
+avanzamos vamos a utilizar el mismo formulario que cuando creamos un
+artículo.
 
+Primero vamos a \texttt{index.blade.php} para añadir un enlace que nos lleve
+a la edición del artículo. Vemos en nuestro código que hay un enlace
+que pone \texttt{\{\{ \_\_("Ver detalle") \}\}}, que en el código original era
+«Learn more» y lo hemos cambiado. Al final de ese bloque hemos añadido
+un carácter de pipeline \texttt{|}. En este mismo bloque, antes de añadir, la
+parte de editar, hemos añadido lo siguiente:
 
-\newpage
+\begin{minted}[]{php}
+<?php
+href="{{ route("articles.show", ["article" => $article]) }}"
+\end{minted}
+Esto nos permite ir a mostrar el artículo al detalle, pero Laravel
+necesita el \texttt{id} del artículo, para ello podemos pasarle en \texttt{id} o el
+artículo completo. En este caso pasamos todo el artículo y Laravel ya
+sabrá que hacer con él.
 
-El fichero \texttt{index.blade.php} terminado:
+Lo siguiente es añadir un bloque similar al del detalle para la
+edición del artículo:
+\begin{minted}[]{php}
+<?php
+<a href="{{ route("articles.edit", ["article" => $article]) }}"
+  class="text-indigo-500 inline-flex items-center mt-4">{{ __("Editar") }}
+ <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
+       stroke="currentColor" stroke-width="2"
+       fill="none" stroke-linecap="round"
+    stroke-linejoin="round">
+    <path d="M5 12h14"></path>
+    <path d="M12 5l7 7-7 7"></path>
+  </svg>
+</a> |
+\end{minted}
+Observad a qué \texttt{url} vamos, \texttt{articles.edit}. Es la función del
+controlador que vamos a implementar a continuación. También el
+carácter de pipeline al final del bloque. Vamos a nuestro fichero
+\texttt{ArticleController.php} y editamos el método \texttt{edit}
+\begin{minted}[]{php}
+<?php
+/**
+ * Show the form for editing the specified resource.
+ *
+ * @param Article $article
+ * @return Renderable
+ */
+public function edit(Article $article): Renderable
+{
+    //dd($article);
+    $title = __("Actualizar artículo");
+    //***al pasar el $article, al ir al formulario ya estará todo relleno***
+    $action = route("articles.update", ["article" => $article]);
+    return view("articles.form", compact("article", "title", "action"));
+}
+\end{minted}
+
+Observad que es muy parecido a lo que hicimos en la creación de
+artículos. Devolvemos un \texttt{Renderable}, tenemos título, una acción
+(llama al método update, situado debajo en la clase), crea la acción
+que es una llamada a la ruta \texttt{"articles.update"} y devuelve la vista
+\texttt{"articles.form"}, con los datos del artículo, el título y la
+acción. El orden no importa. Como bonus mágico adicional, ya puesto
+como comentario en el código, pasar a la ruta el artículo hace que, al
+editar, el formulario esté relleno con los datos que tenía el artículo.
+
+\subsubsection{Procesar edición de artículos. Actualizar registro en la BD.}
+\label{sec:org6590863}
+Este trozo de código que ya hemos mencionado anteriormente
+\begin{minted}[]{php}
+@if($article->id)
+    @method("PUT")
+@endif
+\end{minted}
+es el que permite que el método \texttt{update} sepa el tipo de petición,
+POST o PUT, y entremos en modo edición y no creación de nuevo
+artículo.
+
+E Vamos a nuestro ArticleController y vamos a modificar el método
+\texttt{update()}, que es donde se va a procesar el formulario cuando estemos
+en modo edición. Cambiamos el tipo de respuesta a \texttt{RedirectResponse},
+y añadimos \texttt{\$article->update(\$validated);} y ya está. Queda crear una
+sesión con un mensaje que pasar al \texttt{index.blade.php}, y hacer la
+redirección. Y eso, es todo amigos.
+\begin{minted}[]{php}
+<?php
+/**
+ * Update the specified resource in storage.
+ *
+ * @param  ArticleRequest $request
+ * @param Article $article
+ * @return RedirectResponse
+ */
+public function update(ArticleRequest $request, Article $article)
+{
+    $validated = $request->safe()->only(['title', 'content', 'category_id']);
+    $article->update($validated);
+    //es una línea, pero para que salga bien...
+    session()->flash("success", __("El artículo ha sido" .
+                                  "actualizado correctamente"));
+    return redirect(route("articles.index"));
+}
+\end{minted}
+
+\subsubsection{Mostrar el detalle de un artículo, cargando sus relaciones.}
+\label{sec:org065b35f}
+Para esto vamos a usar el método \texttt{show()}; vamos al ArticleController
+y cambiamos el tipo de dato devuelto a \texttt{Renderable}. Ya tenemos el
+artículo en sí, porque está llegando desde la ruta y ya sólo nos queda
+cargar cierta información para este artículo, la que proviene de las
+relaciones. Para ello vamos a usad \texttt{load}. A esta función le pasamos
+qué queremos cargar, en este caso usuario con su id y nombre y la
+categoría con id y nombre, también ("user:id,name", "category:id,name").
+
+Si no usamos load para cargar las relaciones, y usamos \texttt{dd(\$article)},
+podemos ver que los datos provenientes de las relaciones están vacíos.
+
+Esta es la forma de cargar información dinámicamente con Eloquent, el
+ORM de Laravel, ya que con una sola consulta se carga todo. Si no lo
+hiciéramos así, y recorriéramos, por ejemplo, una lista de etiquetas,
+tendríamos un problema de rendimiento, puesto que haríamos muchas más
+consultas de las necesarias. Podemos usar "Laravel Debugbar" para
+verlo, así como para depurar el código.
+
+Lo que nos queda es devolver una vista \texttt{articles.show}, que no existe
+y vamos a crear, pasándole el artículo modificado..
+\begin{minted}[]{php}
+<?php
+/**
+ * Display the specified resource.
+ *
+ * @param Article $article
+ * @return Renderable
+ */
+public function show(Article $article): Renderable
+{
+    $article->load("user:id,name", "category:id,name");
+    //dd($article):
+    return view("articles.show", compact("article"));
+}
+\end{minted}
+
+\begin{enumerate}
+\item Vista \texttt{articles.show}
+\label{sec:orgeab5580}
+Esta es la vista que creamos para el detalle de los artículos. No hay
+mucho que destacar. Tenemos una cabecera, luego vamos metiendo, según
+nos interese, los distintos campos de un artículo, contenido, usuario...,
+así como un enlace para volver al index. Con esto ya está la vista de detalle.
 \begin{minted}[]{xml}
 <x-app-layout>
   <x-slot name="header">
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-      {{ __('Artículos') }}
+      {{ __('Detalle artículo') }}
     </h2>
   </x-slot>
 
-  <section class="text-gray-600 body-font overflow-hidden">
-    <div class="container px-5 py-24 mx-auto">
-      <div class="mb-16 -my-8">
-        <a href="{{ route("articles.create") }}"
-           class="flex w-64 text-white bg-indigo-500
-                  border-0 py-2 px-8 focus:outline-none
-                  hover:bg-indigo-600 rounded text-lg">
-          {{ __("Crear un nuevo artículo") }}
-        </a>
+  <div class="container px-5 py-24 mx-auto flex flex-col">
+    <div class="lg:w-4/6 mx-auto">
+      <div class="rounded-lg overflow-hidden">
+        <h1 class="text-3xl">{{ $article->title }}</h1>
       </div>
-
-      <div class="-my-8 divide-y-2 divide-gray-100">
-        @foreach($articles as $article)
-          <div class="py-8 flex flex-wrap md:flex-nowrap">
-            <div class="md:w-64 md:mb-0 mb-6 flex-shrink-0 flex flex-col">
-              <span class="font-semibold title-font text-gray-700">
-                 {{ $article->category->name }}
-              </span>
-              <span class="mt-1 text-gray-500 text-sm">
-                {{ $article->created_at_formatted }}
-              </span>
-            </div>
-            <div class="md:flex-grow">
-              <h2 class="text-2xl font-medium text-gray-900 title-font mb-2">
-                 {{ $article->title }}
-              </h2>
-              <p class="leading-relaxed">{{ $article->excerpt }}</p>
-              <a href="{{ route("articles.show", ["article" => $article]) }}"
-                 class="text-indigo-500 inline-flex items-center mt-4">
-                    {{ __("Ver detalle") }}
-                <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
-                     stroke="currentColor" stroke-width="2"
-                     fill="none" stroke-linecap="round"
-                     stroke-linejoin="round">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5l7 7-7 7"></path>
-                </svg>
-              </a> |
-              <a href="{{ route("articles.edit", ["article" => $article]) }}"
-                 class="text-indigo-500 inline-flex items-center mt-4">
-                       {{ __("Editar") }}
-                <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
-                     stroke="currentColor" stroke-width="2"
-                     fill="none" stroke-linecap="round"
-                     stroke-linejoin="round">
-                  <path d="M5 12h14"></path>
-                  <path d="M12 5l7 7-7 7"></path>
-                </svg>
-              </a> |
-              <form class="inline" method="POST"
-                    action="{{ route("articles.destroy", ["article" => $article]) }}">
-                @csrf
-                @method("DELETE")
-                <button type="submit"
-                        class="text-red-500 inline-flex items-center mt-4">
-                        {{ __("Eliminar") }}
-                  <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24"
-                       stroke="currentColor" stroke-width="2"
-                       fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 12h14"></path>
-                    <path d="M12 5l7 7-7 7"></path>
-                  </svg>
-                </button>
-              </form>
-            </div>
+      <div class="flex flex-col sm:flex-row mt-10">
+        <div class="sm:w-1/3 text-center sm:pr-8 sm:py-8">
+          <div class="w-20 h-20 rounded-full inline-flex
+            items-center justify-center bg-gray-200 text-gray-400">
+            <svg fill="none" stroke="currentColor"
+                 stroke-linecap="round" stroke-linejoin="round"
+                 stroke-width="2" class="w-10 h-10" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
           </div>
-        @endforeach
-
-        {{ $articles->links() }}
+          <div class="flex flex-col items-center text-center justify-center">
+            <h2 class="font-medium title-font mt-4 text-gray-900 text-lg">
+            {{ $article->user->name }}</h2>
+            <div class="w-12 h-1 bg-indigo-500 rounded mt-2 mb-4"></div>
+          </div>
+        </div>
+        <div class="sm:w-2/3 sm:pl-8 sm:py-8 sm:border-l border-gray-200
+             sm:border-t-0 border-t mt-4 pt-4 sm:mt-0 text-center sm:text-left">
+          <span class="font-semibold title-font text-gray-400 underline">
+          {{ $article->category->name }}</span>
+          <p class="leading-relaxed text-lg mb-4">{{ $article->content }}</p>
+          <a href="{{ route("articles.index") }}"
+            class="text-indigo-500 inline-flex items-center">{{ __("Volver") }}
+            <svg fill="none" stroke="currentColor" stroke-linecap="round"
+                 stroke-linejoin="round" stroke-width="2"
+                 class="w-4 h-4 ml-2" viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
       </div>
     </div>
-  </section>
 </x-app-layout>
 \end{minted}
 
 \newpage
+\end{enumerate}
+
+\subsubsection{Eliminar registros de la base de datos de forma correcta}
+\label{sec:org5e440dc}
+Vamos a ver cómo eliminar artículos desde el listado de artículos.
+
+Primero nos vamos a \texttt{index.blade.php} y añadir una opción para poder
+hacerlo. Va a ser un formulario que añadimos después de la opción de
+\texttt{Editar}, tras el carácter de pipeline:
+\begin{minted}[]{html}
+</a> | <--
+<form class="inline" method="POST"
+      action="{{ route("articles.destroy", ["article" => $article]) }}">
+ @csrf
+ @method("DELETE")
+ <button type="submit"
+         class="text-red-500 inline-flex items-center mt-4">{{ __("Eliminar") }}
+  <svg class="w-4 h-4 ml-2" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+        fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12h14"></path>
+    <path d="M12 5l7 7-7 7"></path>
+  </svg>
+ </button>
+</form>
+\end{minted}
+
+Observad que el borrado lo hacemos con un formulario, lo ponemos
+\texttt{inline} con el resto de elementos, y es de tipo \texttt{POST}, pero lo vamos
+a mandar como \texttt{DELETE}, sin comprobar nada porque sólo va a tener la
+función de borrar. Lo de poner un formulario y no como un enlace, es
+para poder protegerlo con \texttt{@csrf} y evitar que cualquiera desde otro
+sitio pueda acceder a nuestros recursos y borrarlos, con una simple
+llamada \texttt{GET}, sin \texttt{csrf} ni \emph{token}, a ese enlace.
+
+La acción del formulario, va a ser llamar directamente a la ruta
+\texttt{articles.destroy} con el artículo actual. Se podría pasar sólo el
+\texttt{id}, pero no es necesario, Laravel sabe qué hacer.
+
+También definimos un botón, de tipo submit, con el texto \emph{Eliminar}
+para realizar la acción.
+
+Si borramos \texttt{@method('DELETE')} no funcionaría, probadlo.
+
+\textbf{Mejora}, pedir confirmación del borrado. Se podría lanzar un alert, u
+otro elemento para pedir la confirmación. Si se confirma el borrado ya
+se llamaría a \texttt{destroy}; si no se confirma, se vuelve al listado.
+
+Ahora vamos a crear la función llamada desde el enlace de eliminar. En
+nuestro \texttt{ArticleController} vamos a dar contenido a la función
+\texttt{destroy}, quedará así:
+\begin{minted}[]{php}
+<?php
+/**
+ * Remove the specified resource from storage.
+ *
+ * @param Article $article
+ * @return RedirectResponse
+ */
+public function destroy(Article $article)
+{
+    $article->delete();
+    session()->flash("success", __("El artículo ha sido eliminado correctamente"));
+    return redirect(route("articles.index"));
+}
+\end{minted}
+
+La primera línea es todo lo que necesitamos. La siguientes es para
+mostrar un mensaje, como siempre, y finalmente volvemos a la lista de
+artículos.
+
+CRUD terminado.
+
+\subsection{Por hacer del CRUD}
+\label{sec:org68360b0}
+Quedan algunas cosas por hacer como subir un fichero, imagen... y
+gestionar roles. Lo primero lo vamos a ver, lo segundo...
+
+\section{Test funcionales con Pest Framework}
+\label{sec:orgaac71a5}
+Podríamos hacer todos los test de las diferentes funciones del
+controlador tal y como hicimos unas páginas atrás y luego, con los
+test rellenos, usar \texttt{sail test}, para ejecutar los test.
+
+Vamos a usar una framework que se llama Pest. Trabaja sin clases, lo
+que eliminar mucho código y además si estás a costumbrado a Jest en
+javascript, te resultará familiar la forma de trabajar.  El elemento
+para estos test son las funciones \texttt{it()} encadenadas, tantas como
+queramos, con tantos test como creamos necesario.
+
+Primero hay que \href{https://pestphp.com/docs/installation}{instalar Pest}, si no lo tenemos instalado.
+\begin{minted}[]{bash}
+sail composer require pestphp/pest --dev --with-all-dependencies
+\end{minted}
+
+Luego el plugin para Laravel
+\begin{minted}[]{bash}
+sail composer require pestphp/pest-plugin-laravel --dev
+\end{minted}
+
+Necesitamos que se cree \texttt{Pest.php} para artisan (configuración), para ello
+ejecutamos:
+\begin{minted}[]{bash}
+sail artisan pest:install
+\end{minted}
+
+
+También disponemos del comando \texttt{pest:dataset} para generar datos para
+las pruebas conforme se van realizando los test (usaremos factorías en
+su lugar). Y para crear test usaremos \texttt{pest:test} , aunque también se
+podría crear con el comando artisan general para los tests y añadir al
+final \texttt{-{}-pest}. Si queremos test unitarios habría que añadir \texttt{-{}-unit}.
+
+\subsection{Creación de los test}
+\label{sec:org0b0dc17}
+Vamos a crear test funcionales para el CRUD de artículos
+\begin{minted}[]{bash}
+sail artisan pest:test ArticleTest
+\end{minted}
+
+Nos crea un fichero con un \texttt{it()} que vamos a borrar y empezar de cero.
+\subsubsection{Configuración de la BD de test (opocional).}
+\label{sec:orgc076b35}
+
+Antes de continuar vamos a abrir el fichero \texttt{phpunit.xml} y añadir, en
+la etiqueta \texttt{<php>}:
+\begin{minted}[]{xml}
+<env name="DB_CONNECTION" value="sqlite"/>
+<env name="DB_DATABASE" value=":memory:"/>
+\end{minted}
+
+Si tenemos alguno de esos atributos ya creados, con otros valores, los
+comentamos.
+
+Con esto vamos a ejecutar los tests en una BD en memoria con sqlite,
+sin interferir con nuestra BD de la aplicación.
+
+Si no nos importa, podemos dejar activa:
+\begin{minted}[]{xml}
+<env name="DB_DATABASE" value="testing"/>
+\end{minted}
+
+\textbf{Nota:} \\
+Podemos mirar el fichero \texttt{Pest.php} donde podríamos añadir más
+configuración, entre otras podríamos añadir \texttt{Dusk} para ejecutar test
+en el navegador. También es posible crear un fichero \texttt{.env.testing}
+para que los test lo usen en lugar  de \texttt{.env}.
+
+Para instalar y configurar Dusk sigue este \href{https://laravel.com/docs/9.x/dusk}{enlace} y este \href{https://laravel.com/docs/9.x/sail\#laravel-dusk}{otro}
+
+\textbf{ATENCIÓN} nunca instalar Dusk en un servidor en producción. Podría
+pasar, que personas ajenas se puedan autenticar con la aplicación sin
+ser usuarios.
+
+\subsubsection{Importar y preparar los test.}
+\label{sec:org36f3408}
+Lo primero es importar lo que vayamos a necesitar de Pest/laravel.
+Con Pest vamos a usar funciones y no clases. De Pest:
+\begin{minted}[]{php}
+<?php
+use App\Models\{Category, User};
+use function Pest\Laravel\{actingAs, get};
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+beforeEach(fn () => User::factory()->create());
+\end{minted}
+Importamos dos funciones del \emph{namespace} \texttt{Pest\textbackslash{}Laravel} como son
+\texttt{actingAs} y \texttt{get}.
+
+También podríamos importar \texttt{put}, \texttt{post}, ... Para cuando necesitemos
+actuar como un usuario, por ejemplo un usuario identificado en una
+zona en la que es necesaria la identificación, usaremos \texttt{actingAs}.
+
+Las funciones \texttt{get}, \texttt{post},... nos servirán para simular peticiones
+http en un CRUD.
+
+Importamos \texttt{get} pero no el resto, luego veremos por qué.
+
+El import de \texttt{RefreshDatabase} hará que los seeds y las migraciones se
+ejecuten automáticamente cada vez que lanzan los test.
+
+Con \texttt{beforeEach} conseguimos crear un usuario para ese test, y lo
+usaremos con \texttt{actingAs}.
+
+\subsubsection{El primer test, existe un usuario}
+\label{sec:orgf96cbd2}
+\begin{minted}[]{php}
+<?php
+it('has author')->assertDatabaseHas('users', [
+  'id' => 1,
+]);
+\end{minted}
+Con este test comprobamos que existe un usuario para nuestros test, el
+que estamos creando, en la tabla de usuarios con 'id' == 1.
+Podemos comprobarlo yendo a la terminal y ejecutando:
+\begin{minted}[]{bash}
+sail artisan test --filter ArticleTest
+\end{minted}
+
+\subsubsection{Segundo test, usuario no autenticado no tiene acceso.}
+\label{sec:orgf4b920c}
+Y nos muestra \texttt{it has author}, entre otras cosas.
+Añadimos más test:
+\begin{minted}[]{php}
+<?php
+it('user not logged cannot access to articles page', function ()
+{
+  get('/articles')
+    ->assertRedirect('/login');
+});
+\end{minted}
+
+En el primer test no añadimos un cierre (closure), pero en este
+segundo test, sí añadimos una función anónima donde pondremos lo que
+queremos que haga el test, en este caso comprobar que los usuarios no
+identificados no pueden acceder a la página de artículos.
+
+\subsubsection{Tercer test, usuario autenticado puede acceder al listado de artículos}
+\label{sec:orgc01e0bc}
+Con el siguiente test vamos a comprobar que los usuarios identificados
+pueden acceder a la página de artículos:
+\begin{minted}[]{php}
+<?php
+
+it('user logged can access to articles page', function ()
+{
+  actingAs(User::first())
+    ->get('/articles')
+    ->assertStatus(200);
+});
+\end{minted}
+
+Vemos el uso de \texttt{actingAs} para usar al primer usuario de la BD para
+idenfiticarse y acceder a la págigna (\texttt{get}). Si funciona bien
+deberíamos obtener una respuesta http \texttt{200}, \texttt{assertStatus}.
+
+\subsubsection{Tests 4º y 5º, usuario logado tiene acceso a creación de artículos y puede crearlos}
+\label{sec:org5683ee6}
+Ahora queremos asegurarnos de que un usuario identificado puede
+visitar la página para crear un artículo y también que puede crear un
+artículo:
+\begin{minted}[]{php}
+<?php
+it('user logged can access to create article page', function ()
+{
+  actingAs(User::first())
+    ->get('/articles/create')
+    ->assertStatus(200);
+});
+//------------- comprobar que se puede crear
+it('user logged can create article', function ()
+{
+  actingAs(User::first())
+    ->post('/articles', [
+      'title' => 'Article title',
+      'content' => 'Article content',
+      'category_id' => Category::factory()->create()->id,
+    ])
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido creado correctamente');
+});
+\end{minted}
+
+Para comprobar la creación de artículos, vamos a actuar como el primer
+usuario que encontremos en BD y encadenamos una función \texttt{post()}; le
+estamos diciendo que hacemos una petición post con una serie de datos
+para almacenar en BD con lo que le estamos diciendo que ejecute la
+función \texttt{store} del ArticleController. Si todo va bien se nos
+redirecciona a la página de articles y tenemos que ver una sesión con
+el nombre \texttt{'success'} y el título \texttt{'El artículo ha sido creado
+correctamente'}.
+
+\subsubsection{Tests 6º y 7º, usuario logado tiene acceso a edición de artículos y puede editarlos}
+\label{sec:org6e2004b}
+Para comprobar que se puede acceder a la página de editar un artículo,
+primero creamos uno, luego accedemos a la página. Para comprobar que
+se puede editar haremos lo mismo, pero en esta ocasión si lo
+editamos. Observad el omnipresente \texttt{actingAs}:
+\begin{minted}[]{php}
+<?php
+it('user logged can access to edit article page', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->get("/articles/{$article->id}/edit")
+    ->assertStatus(200);
+});
+//------------- comprobar que se puede editar
+it('user logged can edit article', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->put("/articles/{$article->id}", [
+      'title' => 'Article title updated',
+      'content' => 'Article content updated',
+      'category_id' => Category::factory()->create()->id,
+    ])
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido actualizado correctamente');
+});
+\end{minted}
+
+\subsubsection{Último test, por el momento, el lusuario puede borrar.}
+\label{sec:org0b177f8}
+Ahora a probar el borrado
+\begin{minted}[]{php}
+<?php
+it('user logged can delete article', function ()
+{
+  $user = User::first();
+  $article = $user->articles()->create([
+    'title' => 'Article title',
+    'content' => 'Article content',
+    'category_id' => Category::factory()->create()->id,
+  ]);
+
+  actingAs($user)
+    ->delete("/articles/{$article->id}")
+    ->assertRedirect('/articles')
+    ->assertSessionHas('success', 'El artículo ha sido eliminado correctamente');
+});
+
+\end{minted}
+
+Para que se pueda borrar necesitamos que exista previamente un
+artículo que borrar, por ello, en primer lugar lo creamos y luego
+procedemos con el borrado.
+
+
+\newpage
+
+\section{{\bfseries\sffamily TODO} Subida de imagenes}
+\label{sec:orgc855553}
+Para poder subir imágenes necesitamos dar una serie de pasos.
+\begin{itemize}
+\item Crear un proyecto, nuestro blog.
+\item Instalar Spatie Media Library
+\item Actualizar la BD
+\item Crear formulario subida imagen
+\end{itemize}
+
+\subsection{Crear proyecto}
+\label{sec:org75183ac}
+Nada que hacer, ya esta:-).
+
+\subsection{Modelo el formulario de registro}
+\label{sec:orga054c13}
+Necesitamos añadir un campo para la subida de la imagen. Buscamos el
+formulario de registro, que están en una vista (resources/views/auth),
+\texttt{register.blade.php} y allí vamos a añadir (bajo el campo que queráis)
+lo siguiente:
+\begin{minted}[]{html}
+<!-- Avatar Image -->
+ <div class="mt-4">
+   <x-input-label for="email" :value="__('Avatar')" />
+
+   <x-text-input id="avatar" class="block mt-1 w-full" type="file"
+                 name="avatar" :value="old('avatar')" />
+
+   <x-input-error :messages="$errors->get('avatar')" class="mt-2" />
+ </div>
+\end{minted}
+Yo lo he añadido debajo de la petición del nombre. Adicionalmente se
+le pueden modificar los css, clases tailwind, del botón para que salga
+más bonito.
+
+También hay que destacar que no he puesto \texttt{required}.
+
+Para que funcione no hay que olvidar modificar el formulario para que
+sea "multipart/form-data":
+\begin{minted}[]{html}
+<form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
+\end{minted}
+
+
+\subsection{Spatie Laravel Media Library, para subida de ficheros de imágenes}
+\label{sec:org780eb0c}
+Laravel Media Library es un paquete poderoso y gratuito que puede
+asociar todo tipo de archivos con modelos Eloquent. Además de eso,
+puede generar miniaturas e imágenes "responsivas".¡También puede rastrear
+todos sus medios en todos los sistemas de archivos, y mucho más!
+...
+
+\subsubsection{Instalación y configuración}
+\label{sec:org49576cc}
+\begin{enumerate}
+\item Instalación:
+\label{sec:orgc16fd06}
+\begin{minted}[]{bash}
+sail composer require "spatie/laravel-medialibrary:^10.0.0"
+\end{minted}
+
+\item Preparar la base de datos.
+\label{sec:org638f323}
+\begin{minted}[]{bash}
+sail artisan vendor:publish \
+--provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" \
+--tag="migrations"
+\end{minted}
+\item Ejecutar las migraciones (crea tabla para los medios).
+\label{sec:org050f7e0}
+\begin{minted}[]{bash}
+sail artisan migrate
+\end{minted}
+
+Generará una tabla de base de datos llamada media que usa \textbf{\href{https://appdividend.com/2018/05/18/laravel-polymorphic-relationship-tutorial-example/}{Polymorphic
+Relations}} para almacenar los datos. Puedes ver un error como este:
+
+\begin{verbatim}
+Error : [Illuminate\Database\QueryException]
+SQLSTATE[42000]: Syntax error or access violation: 1064 You have an
+error in your SQL syntax; check the manual that corresponds to your
+MariaDB server version of the right syntax to use ‘json not null,
+custom_properties json not null, order_column int unsigned nu’ at line
+1 (SQL: create table m edia(id int unsigned not null auto_increment
+primary key, model_id int unsigned not null, model _typevarchar(191)
+not null, collection_name varchar(191) not null, name varchar(191) not
+null, file_namevarchar(191) not null, mime_type varchar(191)
+null, disk varchar(191) not null, size int unsigned not
+null, manipulations json not null, custom_properties json not
+null, order_column int unsigned null, created_at timestamp
+null, updated_at timestamp null) default character set u tf8mb4
+collate utf8mb4_unicode_ci)
+\end{verbatim}
+
+Posible solución: cambiar el tipo de datos de \texttt{json} a \texttt{text} en la
+base de datos >> migración >> \texttt{archivo create\_media\_table.php}.
+
+\item Publicar el fichero de configuración.
+\label{sec:org538bb53}
+Es un paso opcional, pero lo vamos a hacer porque pretendemos cambiar
+el \texttt{disk} donde se guardan los archivos.
+\begin{minted}[]{bash}
+sail artisan vendor:publish \
+--provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" \
+--tag="config"
+\end{minted}
+
+Esta es la configuración por defecto del disco donde se van a guardar
+los "medios";
+
+\begin{minted}[]{php}
+<?php
+/*
+     * The disk on which to store added files and derived images by default. Choose
+     * one or more of the disks you've configured in config/filesystems.php.
+     */
+    'disk_name' => env('MEDIA_DISK', 'public'),
+...
+\end{minted}
+
+\newpage
+\end{enumerate}
+
+\section{Subida de imagen de avatar}
+\label{sec:orgcb03aeb}
+Para poder poner una imagen de usuario en el perfil, avatar,
+necesitamos dar una serie de pasos.
+\begin{itemize}
+\item Modificar el formulario de registro
+\begin{itemize}
+\item Crear un componente y usarlo en el formulario
+\item Validación de la imagen en el formulario
+\end{itemize}
+\item Actualizar la BD y el almacenamiento
+\begin{itemize}
+\item Crear una migración
+\item Cambiar el modelo de usuario, User
+\item Configurar el espacio de almacenamiento
+\end{itemize}
+\item Mostrar una imagen miniatura, thumbnail, junto al nombre
+\end{itemize}
+
+\subsection{Modificación formulario registro de Breeze}
+\label{sec:org6b61047}
+Vamos a modificar el formulario de registro de Breeze para poder
+añadir una imagen avatar para el usuario. Hay algunas cosas no
+necesarias, como la visualización al subir, pero así trabajamos un
+poco con Alpine.js, que es el mini framework JavaScript que viene con
+Laravel. Adicionalmente vamos a ver cómo se crea un component
+
+\textbf{Tutorial vídeo para modificar Breeze registration form}.
+Seguimos el vídeo \url{https://www.youtube.com/watch?v=rbG0wWbPo-U}
+
+\subsubsection{Crear componente input para imagen}
+\label{sec:org3684298}
+Vamos a crear un componente para la subida de la imagen del
+avatar. Primero lo creamos con artisan:
+\begin{minted}[]{bash}
+sail artisan make:component avatar-input --view
+\end{minted}
+
+Con \texttt{-{}-view} le indicamos que sólo queremos la vista
+correspondiente. Si no ponemos \texttt{-{}-view}, nos crearía la clase
+correspondiente. Esto nos serviría en caso de querer pasar parámetros
+al componente para usarlo de plantilla... En este caso nos basta con
+la vista.
+
+Para rellenar la vista, primero vamos a \href{https://heroicons.com/}{heroicons.com} y escogemos un
+icono para la subida de archivos, pinchamos sobre él y copiamos el
+"svg", o "jsx" si es para usar con React.
+
+Abrimos \texttt{avatar-input.blade.php} que está en
+\texttt{resources/views/components}, y lo editamos metiendo en él, el
+componente que acabamos de bajar.
+
+Observad el cambio de \texttt{x-button} por \texttt{x-primary-button}, en nuestra
+instalación de breeze, se instala el segundo component y no el que
+usan en el vídeo.
+
+\begin{minted}[]{html}
+<div class="flex items-center" x-data="picturePreview()">
+  <div class="rounded-md bg-gray-200 mr-2">
+    <img id="preview" src="" alt=""
+         class="w-24 h-24 rounded-md object-cover">
+  </div>
+  <div>
+   <x-primary-button
+      @click="document.getElementById('avatar').click()"
+     class="relative">
+      <div class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             fill="none" viewBox="0 0 24 24"
+             stroke-width="1.5" stroke="currentColor"
+             class="w-6 h-6 mr-2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 16.5V9.75m0 0l3 3m-3-3l-3
+                   3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0
+                   0110.233-2.33 3 3 0 013.758 3.848A3.752
+                   3.752 0 0118 19.5H6.75z" />
+        </svg>
+        Subir imagen
+      </div>
+      <input @change="showPreview(event)"
+             type="file" name="avatar"
+             id="avatar" class="absolute inset-0 -z-10 opacity-0">
+   </x-primary-button>
+</div>
+  <script>
+    function picturePreview() {
+      return {
+        showPreview: (event) => {
+          if (event.target.files.length > 0)
+            var src = URL.createObjectURL(event.target.files[0]);
+          document.getElementById('preview').src = src;
+        }
+      }
+    }
+  </script>
+</div>
+\end{minted}
+Hay que destacar que no he puesto \texttt{required} en el input.
+
+\subsubsection{Modificar barra de navegación}
+\label{sec:org9a9c057}
+En \texttt{navigation.blade.php}, buscamos la sección \texttt{Settings Dropdown}, y
+ahí donde está
+\begin{minted}[]{html}
+<div>
+  {{ Auth::user()->name }}
+</div>
+\end{minted}
+
+vamos a añadir la imagen del avatar, justo delante, pero como no es un
+campo obligatorio, tenemos que comprobar que existe con una directiva
+\texttt{if} de Blade:
+
+\begin{minted}[]{html}
+<div class="flex items-center">
+  @if(Auth::user()->avatar)
+   <img src="{{ asset(Auth::user()->avatar) }}" alt=""
+        class="w-8 h-8 rounded-full object-cover mr-2">
+   <div>
+     {{ Auth::user()->name }}
+   </div>
+  @endif
+</div>
+\end{minted}
+
+\subsubsection{Modificar el formulario de registro}
+\label{sec:orgd00c309}
+Lo añadimos justo encima de la petición del nombre. Podéis comprobar
+que lo único que necesitamos hacer es poner el componente que hemos
+creado.
+\begin{minted}[]{html}
+<!-- Avatar Image -->
+ <x-avatar-input />
+<!-- Name -->
+\end{minted}
+
+Para que funcione hay que modificar el formulario para que
+sea \texttt{multipart/form-data}:
+\begin{minted}[]{html}
+<form method="POST" action="{{ route('register') }}"
+enctype="multipart/form-data">
+\end{minted}
+
+\subsubsection{Validar el campo del avatar en el formulario}
+\label{sec:org1ffa001}
+Tenemos que modificar la validación para añadir el nuevo campo. La
+validación del registro de un usuario se hace en
+\texttt{RegisteredUserController.php}. Buscamos la función \texttt{store} y la
+modificamos para que nos quede así:
+\begin{minted}[]{php}
+<?php
+public function store(Request $request): RedirectResponse
+{
+    $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+        'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        'avatar' => ['file','mimes:jpg,png,gif','max:3072']
+    ]);
+
+    $path=null;
+    if($request->hasFile('avatar')) {
+      $path = $request->file('avatar')->storePublicly('avatars');
+    }
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'avatar'  => $path ,
+    // isset($request->avatar) ? ($request->avatar) : 'defaultAvatar.png'
+    ]);
+
+    event(new Registered($user));
+    Auth::login($user);
+    return redirect(RouteServiceProvider::HOME);
+}
+\end{minted}
+
+Con la línea:
+\begin{minted}[]{php}
+<?php
+'avatar' => ['file','mimes:jpg,png,gif','max:3072']
+\end{minted}
+
+, indicamos que el campo es de tipo fichero, los tipos aceptable son
+jpg, png y gif. El tamaño máximo aceptado será de 3072 KB.
+
+Las líneas:
+\begin{minted}[]{php}
+<?php
+$path=null;
+    if($request->hasFile('avatar')) {
+      $path = $request->file('avatar')->storePublicly('avatars');
+    }
+\end{minted}
+
+, sirven para comprobar si se está subiendo una imagen. Si se sube se
+obtiene su path y se almacena en el disco configurado.
+
+El siguiente paso es crear y guardar el nuevo usuario en la BD con el
+nuevo campo \texttt{avatar}.
+\begin{minted}[]{php}
+<?php
+...
+'avatar'  => $path ,
+...
+\end{minted}
+
+
+\subsection{Modificación BD}
+\label{sec:org344de91}
+Creamos una nueva migración para añadir la columna "avatar" a la tabla
+de usuarios. Normalmente no haría falta especificar la tabla, ya que
+usamos la convención de Laravel para las migraciones.
+
+\subsubsection{Migraciones}
+\label{sec:org266f5ce}
+\begin{minted}[]{bash}
+sail artisan make:migration add_avatar_to_users_table --table=users
+\end{minted}
+
+En la migración recién creada ponemos en la función \texttt{up()}
+\begin{minted}[]{php}
+<?php
+$table->string('avatar')->nullable(); //podriamos poner una imagen por defecto
+\end{minted}
+
+Luego actualizamos las migraciones:
+\begin{verbatim}
+sail artisan migrate
+\end{verbatim}
+
+\subsubsection{Modelo User}
+\label{sec:orgd9dd6a4}
+También necesitamos un mínima modificación en el modelo \texttt{User},
+añadir el campo \texttt{avatar} a la variable \texttt{\$fillable}, :
+\begin{minted}[]{php}
+<?php
+protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'avatar',
+    ];
+\end{minted}
+
+\subsubsection{Configurar los discos}
+\label{sec:orge154055}
+En \texttt{config/filesystems.php}, tenemos toda la configuración para
+espacios de almacenamiento en Laravel. Podéis ver más en la
+documentación de Laravel, o en la documentación del curso pasado.
+Buscamos, al final, la sección \texttt{links} y Vamos a añadir esto:
+\begin{minted}[]{php}
+<?php
+'links' => [
+        public_path('avatars') => storage_path('app/avatars'),
+        public_path('storage') => storage_path('app/public'),
+    ],
+\end{minted}
+La segunda fila no es necesario salvo que vayamos a guardar otras
+cosas diferentes a los avatares.
+
+Si no queremos tener que andar configurando discos y creando rutas
+para acceder a los ficheros, puesto que la página sólo tiene acceso a
+la parte del directorio \texttt{public}, vamos a hacer lo siguiente para que
+los directorios \texttt{storage/avatars} y \texttt{storage/publilc} sean accesibles
+sin muchas vueltas:
+\begin{minted}[]{bash}
+sail artisan storage:link
+\end{minted}
+
+\subsubsection{Diseño «responsivo»}
+\label{sec:orgd20dd6f}
+Si queremos que aparezca el avatar en la vista responsiva (móvil)
+vamos a \texttt{navigation.blade.php}, buscamos donde se expone el nombre y
+poner:
+\begin{minted}[]{html}
+<!-- Responsive Settings Options -->
+<div class="pt-4 pb-1 border-t border-gray-200">
+  <div class="px-4">
+    @if(Auth::user()->avatar)
+      <img src="{{ asset(Auth::user()->avatar) }}" alt=""
+           class="w-8 h-8 rounded-full object-cover mr-2">
+      <div>{{ Auth::user()->name }}</div>
+    @endif
+    <div class="font-medium text-base text-gray-800">
+      {{ Auth::user()->name }}
+    </div>
+    <div class="font-medium text-sm text-gray-500">
+      {{ Auth::user()->email }}
+    </div>
+</div>
+\end{minted}
+
+\newpage
+
+\url{https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/}
+
+\url{https://www.itsolutionstuff.com/post/laravel-profile-image-upload-tutorial-with-exampleexample.html}
+
+\url{https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/}
+
+\url{https://spatie.be/courses/discovering-laravel-media-library/introducing-laravel-media-library}
+
+\url{https://www.itsolutionstuff.com/post/how-to-add-extra-field-in-registration-form-in-laravelexample.html}
+
+Customize registration and login
+\url{https://dev.to/kingsconsult/customize-laravel-auth-laravel-breeze-registration-and-login-1769}
+
+
+
+
+\newpage
 
 \section{Anexo}
-\label{sec:org0eab5a6}
+\label{sec:org6621aec}
 \subsection{Pasos tras clonar un repositorio de un proyecto Laravel sail}
-\label{sec:orge08f673}
+\label{sec:org68bb758}
 Cuando subimos un proyecto hecho con Laravel sail, hay ciertas partes
 que no se suben al repositorio, como binarios, librerías, dependencias
 y ficheros de configuración con información sensible como el

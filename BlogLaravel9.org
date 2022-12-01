@@ -2104,6 +2104,15 @@ poner:
 
 \newpage
 
+
+* Anexo I
+** Herramientas, librerías etc.
+*** Cliente
+ - [[https://bladewindui.com/][BladeWind]]: Librería, simple y elegante, de components
+   Blade+Tailwind y JS sin librerías. Ejemplos en este [[https://www.youtube.com/watch?v=UoKa5aKkv1U][vídeo]].
+
+
+
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
 
 https://www.itsolutionstuff.com/post/laravel-profile-image-upload-tutorial-with-exampleexample.html
@@ -2118,11 +2127,10 @@ Customize registration and login
 https://dev.to/kingsconsult/customize-laravel-auth-laravel-breeze-registration-and-login-1769
 
 
-
-
 \newpage
 
-* Anexo
+
+* Anexo II
 ** Pasos tras clonar un repositorio de un proyecto Laravel sail
 Cuando subimos un proyecto hecho con Laravel sail, hay ciertas partes
 que no se suben al repositorio, como binarios, librerías, dependencias

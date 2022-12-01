@@ -32,8 +32,8 @@
                 <div class="flex items-center">
                   @if(Auth::user()->avatar)
                     <img src="{{ asset(Auth::user()->avatar) }}" alt="" class="w-8 h-8 rounded-full object-cover mr-2">
-                    <div>{{ Auth::user()->name }}</div>
                   @endif
+                    <div>{{ Auth::user()->name }}</div>
                 </div>
 
                 <div class="ml-1">
@@ -109,5 +109,5 @@
         </div>
       </div>
     </div>
-  </div>  
+  </div>
 </nav>
