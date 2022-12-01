@@ -59,7 +59,7 @@ class ArticleController extends Controller
    */
   public function show(Article $article): Renderable
   {
-    $article->load("user:id,name", "category:id,name");
+    $article->load("user:id,name,avatar", "category:id,name");
     return view("articles.show", compact("article"));
   }
 
