@@ -2166,16 +2166,17 @@ Hemos añadido un tercer parámetro a la lista de datos que metemos en
  - [[https://bladewindui.com/][BladeWind]]: Librería, simple y elegante, de components
    Blade+Tailwind y JS sin librerías. Ejemplos en este [[https://www.youtube.com/watch?v=UoKa5aKkv1U][vídeo]].
 
+*** PHPStorm
+[[https://github.com/NiclasvanEyk/jetbrains-laravel-make-integration/blob/main/docs/setup_with_sail.md][Laravel Make Integration]], plugin para usar artisan make:* desde un
+menú de PHPStorm. También muestra como configurar PHPStorm para
+trabajar con los contenedores que instala sail.
+
 
 
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
-
 https://www.itsolutionstuff.com/post/laravel-profile-image-upload-tutorial-with-exampleexample.html
-
 https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/
-
 https://spatie.be/courses/discovering-laravel-media-library/introducing-laravel-media-library
-
 https://www.itsolutionstuff.com/post/how-to-add-extra-field-in-registration-form-in-laravelexample.html
 
 Customize registration and login

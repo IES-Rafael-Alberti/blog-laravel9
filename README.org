@@ -1932,10 +1932,10 @@ campo obligatorio, tenemos que comprobar que existe con una directiva
   @if(Auth::user()->avatar)
    <img src="{{ asset(Auth::user()->avatar) }}" alt=""
         class="w-8 h-8 rounded-full object-cover mr-2">
-   <div>
-     {{ Auth::user()->name }}
-   </div>
   @endif
+  <div>
+   {{ Auth::user()->name }}
+  </div>
 </div>
 #+end_src
 
@@ -2102,27 +2102,91 @@ poner:
 </div>
 #+end_src
 
+*** Mostrar avatar en vista de artículo completo
+También podemos mostrar el avatar en la vista =show.blade.php=. Para
+ello podemos reciclar el código usado anteriormente para visualizar el
+avatar, con un ligero cambio. Hasta ahora usábamos
+~Auth::user()->avatar~ para recuperar la imagen, pero ahora
+necesitamos la imagen del creador del artículo, no la del usuario
+autenticado. Cambiamos lo anterior por
+~$article->user->avatar~. Buscamos la imagen de usuario sin avatar y
+añadimos el código encima (si alguien encuentra una posición mejor,
+que avise...) y quedaría así.
+#+begin_src php
+<div class="rounded-lg overflow-hidden">
+  <h1 class="text-3xl">{{ $article->title }}</h1>
+</div>
+<div class="flex flex-col sm:flex-row mt-10">
+  <div class="sm:w-1/3 text-center sm:pr-8 sm:py-8">
+    <div class="w-20 h-20 rounded-full inline-flex
+                items-center justify-center bg-gray-200 text-gray-400">
+
+      {{-- insertar el avatar si existe --}}
+      <div class="flex items-center">
+        @if($article->user->avatar)
+          <img src="{{ asset($article->user->avatar) }}" alt=""
+               class="w-auto h-auto rounded-full object-cover mr-2">
+        @else {{-- si no, el svg de usuario desconocido --}}
+          <svg fill="none" stroke="currentColor"
+               stroke-linecap="round" stroke-linejoin="round"
+               stroke-width="2" class="w-10 h-10" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        @endif
+
+      </div>
+    </div>
+...
+...
+#+end_src
+
+Pero no funciona... el avatar está a =null=, no lo estamos
+recibiendo. Necesitamos cambiar la función ~show()~ en
+ArticleController a:
+#+begin_src php
+  <?php
+public function show(Article $article): Renderable
+{
+  $article->load("user:id,name,avatar", "category:id,name");
+  return view("articles.show", compact("article"));
+}
+#+end_src
+
+Hemos añadido un tercer parámetro a la lista de datos que metemos en
+~$article~ a través de la relación con el usuario.
+
+
 \newpage
 
+
+* Anexo I
+** Herramientas, librerías etc.
+*** Cliente
+ - [[https://bladewindui.com/][BladeWind]]: Librería, simple y elegante, de components
+   Blade+Tailwind y JS sin librerías. Ejemplos en este [[https://www.youtube.com/watch?v=UoKa5aKkv1U][vídeo]].
+
+*** PHPStorm
+[[https://github.com/NiclasvanEyk/jetbrains-laravel-make-integration/blob/main/docs/setup_with_sail.md][Laravel Make Integration]], plugin para usar artisan make:* desde un
+menú de PHPStorm. También muestra como configurar PHPStorm para
+trabajar con los contenedores que instala sail.
+
+
+
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
-
 https://www.itsolutionstuff.com/post/laravel-profile-image-upload-tutorial-with-exampleexample.html
-
 https://www.positronx.io/laravel-upload-images-with-spatie-media-library-tutorial/
-
 https://spatie.be/courses/discovering-laravel-media-library/introducing-laravel-media-library
-
 https://www.itsolutionstuff.com/post/how-to-add-extra-field-in-registration-form-in-laravelexample.html
 
 Customize registration and login
 https://dev.to/kingsconsult/customize-laravel-auth-laravel-breeze-registration-and-login-1769
 
 
-
-
 \newpage
 
-* Anexo
+
+* Anexo II
 ** Pasos tras clonar un repositorio de un proyecto Laravel sail
 Cuando subimos un proyecto hecho con Laravel sail, hay ciertas partes
 que no se suben al repositorio, como binarios, librerías, dependencias
