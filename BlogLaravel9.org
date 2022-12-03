@@ -2171,6 +2171,13 @@ Hemos añadido un tercer parámetro a la lista de datos que metemos en
 menú de PHPStorm. También muestra como configurar PHPStorm para
 trabajar con los contenedores que instala sail.
 
+*** Laravel app deployment
+- Por uno mismo
+  + [[https://laravel.com/docs/9.x/deployment][Con Nginx]]
+- Con servicio
+  + [[https://bootcamp.laravel.com/deploying][Laravel Forge (cuenta de prueba)]]
+  + [[https://vapor.laravel.com/][Laravel Vapor (serverless)]]
+
 
 
 https://appdividend.com/2018/06/02/laravel-avatar-image-upload-tutorial-with-example/
